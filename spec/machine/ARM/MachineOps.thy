@@ -279,6 +279,12 @@ definition
 where "invalidate_I_PoU \<equiv> machine_op_lift invalidate_I_PoU_impl"
 
 consts
+  invalidateDeviceIOTLB_impl :: "machine_word \<Rightarrow> unit machine_rest_monad"
+definition
+  invalidateDeviceIOTLB :: "machine_word \<Rightarrow> unit machine_monad"
+where "invalidateDeviceIOTLB device \<equiv> machine_op_lift (invalidateDeviceIOTLB_impl device)"
+
+consts
   cleanInvalByVA_impl :: "machine_word \<Rightarrow> paddr \<Rightarrow> unit machine_rest_monad"
 definition
   cleanInvalByVA :: "machine_word \<Rightarrow> paddr \<Rightarrow> unit machine_monad"

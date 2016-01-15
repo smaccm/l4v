@@ -76,12 +76,12 @@ definition
 perform_asid_pool_invocation :: "asid_pool_invocation \<Rightarrow> (unit,'z::state_ext) s_monad" where
 "perform_asid_pool_invocation iv \<equiv> case iv of Assign asid pool_ptr ct_slot \<Rightarrow> 
 do
-    pd_cap \<leftarrow> get_cap ct_slot;
-    case pd_cap of 
-      ArchObjectCap (PageDirectoryCap pd_base _) \<Rightarrow> do
+    pt_cap \<leftarrow> get_cap ct_slot;
+    case pt_cap of
+      ArchObjectCap (PageTableCap PT_L1 pt _) \<Rightarrow> do
         pool \<leftarrow> get_asid_pool pool_ptr;
-        pool' \<leftarrow> return (pool (ucast asid \<mapsto> pd_base));
-        set_cap (ArchObjectCap $ PageDirectoryCap pd_base (Some asid)) ct_slot;
+        pool' \<leftarrow> return (pool (ucast asid \<mapsto> pt));
+        set_cap (ArchObjectCap $ PageTableCap PT_L1 pt (Some (MappedMem asid, 0))) ct_slot;
         set_asid_pool pool_ptr pool'
       od
     | _ \<Rightarrow> fail
@@ -108,16 +108,8 @@ definition
   pte_check_if_mapped :: "32 word \<Rightarrow> (bool, 'z::state_ext) s_monad"
 where
   "pte_check_if_mapped slot \<equiv> do
-     pt \<leftarrow> get_master_pte slot;
+     pt \<leftarrow> get_pte slot;
      return (pt \<noteq> InvalidPTE)
-  od"
-
-definition
-  pde_check_if_mapped :: "32 word \<Rightarrow> (bool, 'z::state_ext) s_monad"
-where
-  "pde_check_if_mapped slot \<equiv> do
-     pd \<leftarrow> get_master_pde slot;
-     return (pd \<noteq> InvalidPDE)
   od"
 
 definition
@@ -135,53 +127,29 @@ in. *}
 definition
 perform_page_invocation :: "page_invocation \<Rightarrow> (unit,'z::state_ext) s_monad" where
 "perform_page_invocation iv \<equiv> case iv of
-  PageMap asid cap ct_slot entries \<Rightarrow> do
+  PageMap cap ct_slot entry m \<Rightarrow> let (pte, slot) = entry in do
+    flush \<leftarrow> pte_check_if_mapped slot;
     set_cap cap ct_slot;
-    case entries of
-          Inl (pte, slots) \<Rightarrow> do
-            flush \<leftarrow> pte_check_if_mapped (hd slots);
-            store_pte (hd slots) pte;
-            mapM (swp store_pte InvalidPTE) (tl slots);
-            do_machine_op $ cleanCacheRange_PoU (hd slots) (last_byte_pte (last slots))
-                                                (addrFromPPtr (hd slots));
-            if flush then (invalidate_tlb_by_asid asid) else return ()
-          od
-        | Inr (pde, slots) \<Rightarrow> do
-            flush \<leftarrow> pde_check_if_mapped (hd slots);
-            store_pde (hd slots) pde;
-            mapM (swp store_pde InvalidPDE) (tl slots);
-            do_machine_op $ cleanCacheRange_PoU (hd slots) (last_byte_pde (last slots))
-                                                (addrFromPPtr (hd slots));
-            if flush then (invalidate_tlb_by_asid asid) else return ()
-        od
-    od
-| PageRemap asid (Inl (pte, slots)) \<Rightarrow> do
-    flush \<leftarrow> pte_check_if_mapped (hd slots);
-    store_pte (hd slots) pte;
-    mapM_x (swp store_pte InvalidPTE) (tl slots);
-    do_machine_op $ cleanCacheRange_PoU (hd slots) (last_byte_pte (last slots))
-                                        (addrFromPPtr (hd slots));
-    if flush then (invalidate_tlb_by_asid asid) else return ()
+    store_pte slot pte;
+    do_machine_op $ cleanCacheRange_PoU slot slot (addrFromPPtr slot);
+    if flush then (invalidate_tlb_by_mapping_root m) else return ()
   od
-| PageRemap asid (Inr (pde, slots)) \<Rightarrow> do
-    flush \<leftarrow> pde_check_if_mapped (hd slots);
-    store_pde (hd slots) pde;
-    mapM_x (swp store_pde InvalidPDE) (tl slots);
-    do_machine_op $ cleanCacheRange_PoU (hd slots) (last_byte_pde (last slots))
-                                        (addrFromPPtr (hd slots));
-    if flush then (invalidate_tlb_by_asid asid) else return ()
+| PageRemap entry m \<Rightarrow> let (pte, slot) = entry in do
+    flush \<leftarrow> pte_check_if_mapped slot;
+    store_pte slot pte;
+    do_machine_op $ cleanCacheRange_PoU slot slot (addrFromPPtr slot);
+    if flush then (invalidate_tlb_by_mapping_root m) else return ()
   od
-| PageUnmap cap ct_slot \<Rightarrow> 
-    case cap of
+| PageUnmap cap ct_slot \<Rightarrow> case cap of
       PageCap p R vp_size vp_mapped_addr \<Rightarrow> do
         case vp_mapped_addr of
-            Some (asid, vaddr) \<Rightarrow> unmap_page vp_size asid vaddr p
+            Some (m, vaddr) \<Rightarrow> unmap_page vp_size m vaddr p
           | None \<Rightarrow> return ();
         cap \<leftarrow> liftM the_arch_cap $ get_cap ct_slot;
         set_cap (ArchObjectCap $ update_map_data cap None) ct_slot
       od
     | _ \<Rightarrow> fail
-| PageFlush typ start end pstart pd asid \<Rightarrow> 
+| PageFlush typ start end pstart pd asid \<Rightarrow>
     when (start < end) $ do
       root_switched \<leftarrow> set_vm_root_for_flush pd asid;
       do_machine_op $ do_flush typ start end pstart;
@@ -196,41 +164,85 @@ perform_page_invocation :: "page_invocation \<Rightarrow> (unit,'z::state_ext) s
     set_message_info ct $ MI n_msg 0 0 0
   od"
 
-text {* PageTable capabilities confer the authority to map and unmap page
-tables. *}
+text {* PageTable capabilities confer the authority to map and unmap page tables. *}
 definition
 perform_page_table_invocation :: "page_table_invocation \<Rightarrow> (unit,'z::state_ext) s_monad" where
-"perform_page_table_invocation iv \<equiv> 
-case iv of PageTableMap cap ct_slot pde pd_slot \<Rightarrow> do
-    set_cap cap ct_slot;
-    store_pde pd_slot pde;
-    do_machine_op $ cleanByVA_PoU pd_slot (addrFromPPtr pd_slot)
-  od
-  | PageTableUnmap (ArchObjectCap (PageTableCap p mapped_address)) ct_slot \<Rightarrow> do
-    case mapped_address of Some (asid, vaddr) \<Rightarrow> do
-      unmap_page_table asid vaddr p;
-      pte_bits \<leftarrow> return 2;
-      slots \<leftarrow> return [p, p + (1 << pte_bits) .e. p + (1 << pt_bits) - 1];
-      mapM_x (swp store_pte InvalidPTE) slots;
-      do_machine_op $ cleanCacheRange_PoU p (p + (1 << pt_bits) - 1)
-                                          (addrFromPPtr p)
-    od | None \<Rightarrow> return ();
+"perform_page_table_invocation iv \<equiv> case iv of
+    PageTableMap cap ct_slot pte pt_slot \<Rightarrow> do
+      set_cap cap ct_slot;
+      store_pte pt_slot pte;
+      do_machine_op $ cleanByVA_PoU pt_slot (addrFromPPtr pt_slot)
+    od
+  | PageTableUnmap (ArchObjectCap (PageTableCap l p mapped_address)) ct_slot \<Rightarrow> do
+      case mapped_address of
+      Some (m_root, vaddr) \<Rightarrow> do
+        unmap_page_table m_root vaddr l p;
+        pte_bits \<leftarrow> return 3;
+        slots \<leftarrow> return [p, p + (1 << pte_bits) .e. p + (1 << pt_bits) - 1];
+        mapM_x (swp store_pte InvalidPTE) slots;
+        do_machine_op $ cleanCacheRange_PoU p (p + (1 << pt_bits) - 1) (addrFromPPtr p)
+      od
+      | None \<Rightarrow> return ();
     cap \<leftarrow> liftM the_arch_cap $ get_cap ct_slot;
     set_cap (ArchObjectCap $ update_map_data cap None) ct_slot
   od
   | _ \<Rightarrow> fail"
 
+definition
+  vcpu_read_register :: "obj_ref \<Rightarrow> hyper_reg \<Rightarrow> (machine_word,'z::state_ext) s_monad"
+where
+  "vcpu_read_register vcpu reg \<equiv> do
+    (_,regs) \<leftarrow> get_vcpu vcpu;
+    return $ regs reg
+  od"
+
+text {*
+  Some parts of some registers cannot be written by the user.
+  Bits set in the mask will be preserved.
+*}
+consts
+  register_mask :: "hyper_reg \<Rightarrow> machine_word option"
+
+definition
+  vcpu_write_register :: "obj_ref \<Rightarrow> hyper_reg \<Rightarrow> machine_word \<Rightarrow> (unit,'z::state_ext) s_monad"
+where
+  "vcpu_write_register vcpu reg val \<equiv>  do
+    (tcb_opt,regs) \<leftarrow> get_vcpu vcpu;
+    val' \<leftarrow> return (case register_mask reg of
+              None \<Rightarrow> val
+            | Some m \<Rightarrow> regs reg && m || val && ~~m);
+    set_vcpu vcpu (tcb_opt,regs(reg := val'))
+  od"
+
+text {* VCPU objects can be associated with and dissociated from TCBs. *}
+definition
+perform_vcpu_invocation :: "vcpu_invocation \<Rightarrow> (machine_word list,'z::state_ext) s_monad" where
+"perform_vcpu_invocation iv \<equiv> case iv of
+    VCPUDissociate vcpu \<Rightarrow> do dissociate_vcpu vcpu; return [] od
+  | VCPUAssociate vcpu tcb \<Rightarrow> do associate vcpu tcb; return [] od
+  | VCPUReadRegister vcpu reg \<Rightarrow> do val \<leftarrow> vcpu_read_register vcpu reg; return [val] od
+  | VCPUWriteRegister vcpu reg val \<Rightarrow> do vcpu_write_register vcpu reg val; return [] od"
+
+text {* IOSpace capabilities map and unmap page tables to and from devices. *}
+definition
+perform_io_space_invocation :: "io_space_invocation \<Rightarrow> (unit,'z::state_ext) s_monad" where
+"perform_io_space_invocation iv \<equiv> case iv of
+    IOSpaceMap dev pt pt_slot \<Rightarrow> do
+      set_cap (ArchObjectCap $ PageTableCap PT_L1 pt (Some (MappedIO dev, 0))) pt_slot;
+      map_device dev pt
+    od
+  | IOSpaceUnmap dev \<Rightarrow> unmap_device dev"
+
 text {* Top level system call despatcher for all ARM-specific system calls. *}
 definition
   arch_perform_invocation :: "arch_invocation \<Rightarrow> (data list,'z::state_ext) p_monad" where
-  "arch_perform_invocation i \<equiv> liftE $ do
+  "arch_perform_invocation i \<equiv> liftE $
     case i of
-          InvokePageTable oper \<Rightarrow> perform_page_table_invocation oper
-        | InvokePageDirectory oper \<Rightarrow> perform_page_directory_invocation oper
-        | InvokePage oper \<Rightarrow> perform_page_invocation oper
-        | InvokeASIDControl oper \<Rightarrow> perform_asid_control_invocation oper
-        | InvokeASIDPool oper \<Rightarrow> perform_asid_pool_invocation oper;
-    return $ []
-od"
+          InvokePageTable oper \<Rightarrow> do perform_page_table_invocation oper; return [] od
+        | InvokePage oper \<Rightarrow> do perform_page_invocation oper; return [] od
+        | InvokeASIDControl oper \<Rightarrow> do perform_asid_control_invocation oper; return [] od
+        | InvokeASIDPool oper \<Rightarrow> do perform_asid_pool_invocation oper; return [] od
+        | InvokeVCPU oper \<Rightarrow> perform_vcpu_invocation oper
+        | InvokeIOSpace oper \<Rightarrow> do perform_io_space_invocation oper; return [] od"
 
 end

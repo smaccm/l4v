@@ -29,7 +29,7 @@ to the given page size. *}
 definition
   check_vp_alignment :: "vmpage_size \<Rightarrow> word32 \<Rightarrow> (unit,'z::state_ext) se_monad" where
   "check_vp_alignment sz vptr \<equiv>
-     unlessE (is_aligned vptr (pageBitsForSize sz)) $ 
+     unlessE (is_aligned vptr (pageBitsForSize sz)) $
        throwError AlignmentError"
 
 text {* This definition converts a user-supplied argument into an
@@ -54,12 +54,14 @@ section "Architecture calls"
 text {* This definition decodes architecture-specific invocations.
 *}
 
-definition
-  page_base :: "vspace_ref \<Rightarrow> vmpage_size \<Rightarrow> vspace_ref"
+ definition
+  table_addr_from_ref :: "obj_ref \<Rightarrow> 20 word"
 where
-  "page_base vaddr vmsize \<equiv> vaddr && ~~ mask (pageBitsForSize vmsize)"
+  "table_addr_from_ref r \<equiv> ucast ((addrFromPPtr r) >> pt_bits)"
 
-  
+definition max_hyper_reg :: machine_word where
+  "max_hyper_reg \<equiv> of_nat (fromEnum (maxBound::hyper_reg))"
+
 definition
   arch_decode_invocation :: 
   "data \<Rightarrow> data list \<Rightarrow> cap_ref \<Rightarrow> cslot_ptr \<Rightarrow> arch_cap \<Rightarrow> (cap \<times> cslot_ptr) list \<Rightarrow> 
@@ -67,64 +69,36 @@ definition
 where
 "arch_decode_invocation label args x_slot cte cap extra_caps \<equiv> case cap of
 
-  PageDirectoryCap _ _ \<Rightarrow>
-    if isPDFlushLabel (invocation_type label) then
-    if length args > 1
-    then let start = args ! 0;
-             end = args ! 1
-    in doE
-            whenE (end \<le> start) $ throwError $ InvalidArgument 1;
-            whenE (start \<ge> kernel_base \<or> end > kernel_base) $ throwError IllegalOperation;
-            (pd,asid) \<leftarrow> (case cap of
-                    PageDirectoryCap pd (Some asid) \<Rightarrow> returnOk (pd,asid)
-                  | _ \<Rightarrow> throwError $ InvalidCapability 0);
-            pd' \<leftarrow> lookup_error_on_failure False $ find_pd_for_asid asid;
-            whenE (pd' \<noteq> pd) $ throwError $ InvalidCapability 0;
-            frame_info \<leftarrow> liftE $ resolve_vaddr pd start;
-            case frame_info of
-                None \<Rightarrow> returnOk $ InvokePageDirectory PageDirectoryNothing
-              | Some (frame_size, frame_base) \<Rightarrow>
-                    let base_start = page_base start frame_size;
-                        base_end = page_base (end - 1) frame_size;
-                        offset = start && mask (pageBitsForSize frame_size);
-                        pstart = frame_base + offset
-                    in doE
-                        whenE (base_start \<noteq> base_end) $ throwError $
-                            RangeError start (base_start + mask (pageBitsForSize frame_size));
-                        returnOk $ InvokePageDirectory $ 
-                            PageDirectoryFlush (label_to_flush_type (invocation_type label))
-                            start (end - 1) pstart pd asid
-                    odE
-    odE
-    else throwError TruncatedMessage
-    else throwError IllegalOperation
-
-| PageTableCap p mapped_address \<Rightarrow> 
+| PageTableCap PT_L1 _ _ \<Rightarrow> throwError IllegalOperation
+| PageTableCap level p mapped_address \<Rightarrow> 
     if invocation_type label = ArchInvocationLabel ARMPageTableMap then
     if length args > 1 \<and> length extra_caps > 0
     then let vaddr = args ! 0;
              attr = args ! 1;
-             pd_cap = fst (extra_caps ! 0)
+             pt'_cap = fst (extra_caps ! 0)
     in doE
             whenE (mapped_address \<noteq> None) $ throwError $ InvalidCapability 0;
-            (pd,asid) \<leftarrow> (case pd_cap of 
-                            ArchObjectCap (PageDirectoryCap pd (Some asid)) \<Rightarrow> 
-                              returnOk (pd,asid)
+
+            (level',pt',m_root) \<leftarrow> (case pt'_cap of
+                            ArchObjectCap (PageTableCap level' pt' (Some (m_root,_))) \<Rightarrow> 
+                              if level' = pred_level level then
+                                 returnOk (level',pt',m_root)
+                              else
+                                 throwError $ InvalidCapability 1
                          | _ \<Rightarrow> throwError $ InvalidCapability 1);
             whenE (vaddr \<ge> kernel_base) $ throwError $ InvalidArgument 0;
-            pd' \<leftarrow> lookup_error_on_failure False $ find_pd_for_asid asid;
-            whenE (pd' \<noteq> pd) $ throwError $ InvalidCapability 1;
-            pd_index \<leftarrow> returnOk (shiftr vaddr 20);
-            vaddr' \<leftarrow> returnOk (vaddr && ~~ mask 20);
-            pd_slot \<leftarrow> returnOk (pd + (pd_index << 2));
-            oldpde \<leftarrow> liftE $ get_master_pde pd_slot;
-            unlessE (oldpde = InvalidPDE) $ throwError DeleteFirst;             
-            pde \<leftarrow> returnOk (PageTablePDE (addrFromPPtr p)
-                               (attribs_from_word attr \<inter> {ParityEnabled}) 0);
+            check_pt' \<leftarrow> lookup_error_on_failure False $ find_root_pt m_root;
+            whenE (check_pt' \<noteq> pt') $ throwError $ InvalidCapability 1;
+            pt_slot \<leftarrow> returnOk $ pte_slot level' pt' vaddr;
+            vaddr' \<leftarrow> returnOk (vaddr && ~~ mask (level_bits level));
+            old_pte \<leftarrow> liftE $ get_pte pt_slot;
+            unlessE (old_pte = InvalidPTE) $ throwError DeleteFirst;
+            pte \<leftarrow> returnOk (TablePTE (table_addr_from_ref p)
+                                      (attribs_from_word attr \<inter> {ParityEnabled}));
             returnOk $ InvokePageTable $ 
                 PageTableMap
-                (ArchObjectCap $ PageTableCap p (Some (asid, vaddr')))
-                cte pde pd_slot
+                (ArchObjectCap $ PageTableCap level p (Some (m_root, vaddr')))
+                cte pde pt_slot
     odE
     else throwError TruncatedMessage
     else if invocation_type label = ArchInvocationLabel ARMPageTableUnmap
@@ -141,50 +115,49 @@ where
     then let vaddr = args ! 0;
              rights_mask = args ! 1;
              attr = args ! 2;
-             pd_cap = fst (extra_caps ! 0)
+             pt_cap = fst (extra_caps ! 0)
         in doE
-            whenE (mapped_address \<noteq> None) $ throwError $ InvalidCapability 0;
-            (pd,asid) \<leftarrow> (case pd_cap of 
-                            ArchObjectCap (PageDirectoryCap pd (Some asid)) \<Rightarrow> 
-                              returnOk (pd,asid)
-                         | _ \<Rightarrow> throwError $ InvalidCapability 1);
-            pd' \<leftarrow> lookup_error_on_failure False $ find_pd_for_asid asid;
-            whenE (pd' \<noteq> pd) $ throwError $ InvalidCapability 1;
-            vtop \<leftarrow> returnOk (vaddr + (1 << (pageBitsForSize pgsz)) - 1);
+            (pt,m_root) \<leftarrow> (case pt_cap of
+                              ArchObjectCap (PageTableCap PT_L1 pt (Some (m_root,_))) \<Rightarrow> 
+                                returnOk (pt,m_root)
+                           | _ \<Rightarrow> throwError $ InvalidCapability 1);
+            pt' \<leftarrow> lookup_error_on_failure False $ find_root_pt m_root;
+            whenE (pt' \<noteq> pt) $ throwError $ InvalidCapability 1;
+            vtop \<leftarrow> returnOk (vaddr + (1 << (page_bits_for_size pgsz)) - 1);
             whenE (vtop \<ge> kernel_base) $ throwError $ InvalidArgument 0;
             vm_rights \<leftarrow> returnOk (mask_vm_rights R (data_to_rights rights_mask));
             check_vp_alignment pgsz vaddr;
-            entries \<leftarrow> create_mapping_entries (addrFromPPtr p)
-                                              vaddr pgsz vm_rights 
-                                              (attribs_from_word attr) pd;
-            ensure_safe_mapping entries;
-            returnOk $ InvokePage $ PageMap asid
-                (ArchObjectCap $ PageCap p R pgsz (Some (asid, vaddr))) 
-                cte entries
+            entry \<leftarrow> create_mapping_entry (addrFromPPtr p)
+                                            vaddr pgsz vm_rights
+                                            (attribs_from_word attr) pt;
+            ensure_safe_mapping entry;
+            returnOk $ InvokePage $ PageMap
+                (ArchObjectCap $ PageCap p R pgsz (Some (m_root, vaddr)))
+                cte entry m_root
         odE
-    else  throwError TruncatedMessage
+    else throwError TruncatedMessage
     else if invocation_type label = ArchInvocationLabel ARMPageRemap then
          if length args > 1 \<and> length extra_caps > 0
          then let rights_mask = args ! 0;
                   attr = args ! 1;
-                  pd_cap = fst (extra_caps ! 0)
+                  pt_cap = fst (extra_caps ! 0)
          in doE
-            (pd,asid) \<leftarrow> (case pd_cap of 
-                            ArchObjectCap (PageDirectoryCap pd (Some asid)) \<Rightarrow> 
-                              returnOk (pd,asid)
-                         | _ \<Rightarrow> throwError $ InvalidCapability 1);
-            (asid', vaddr) \<leftarrow> (case mapped_address of
-                  Some a \<Rightarrow> returnOk a
+            (pt,m_root) \<leftarrow> (case pt_cap of
+                              ArchObjectCap (PageTableCap PT_L1 pt (Some (m_root, _))) \<Rightarrow> 
+                                returnOk (pt,m_root)
+                           | _ \<Rightarrow> throwError $ InvalidCapability 1);
+            (m_root', vaddr) \<leftarrow> (case mapped_address of
+                  Some m \<Rightarrow> returnOk m
                 | _ \<Rightarrow> throwError $ InvalidCapability 0);
-            pd' \<leftarrow> lookup_error_on_failure False $ find_pd_for_asid asid';
-            whenE (pd' \<noteq> pd \<or> asid' \<noteq> asid) $ throwError $ InvalidCapability 1;  
+            pt' \<leftarrow> lookup_error_on_failure False $ find_root_pt m_root';
+            whenE (pt' \<noteq> pt \<or> m_root' \<noteq> m_root) $ throwError $ InvalidCapability 1;  
             vm_rights \<leftarrow> returnOk (mask_vm_rights R $ data_to_rights rights_mask);
             check_vp_alignment pgsz vaddr;
-            entries \<leftarrow> create_mapping_entries (addrFromPPtr p)
-                                              vaddr pgsz vm_rights 
-                                              (attribs_from_word attr) pd;
-            ensure_safe_mapping entries;
-            returnOk $ InvokePage $ PageRemap asid' entries
+            entry \<leftarrow> create_mapping_entry (addrFromPPtr p)
+                                          vaddr pgsz vm_rights
+                                          (attribs_from_word attr) pt;
+            ensure_safe_mapping entry;
+            returnOk $ InvokePage $ PageRemap entry m_root
         odE
     else  throwError TruncatedMessage
     else if invocation_type label = ArchInvocationLabel ARMPageUnmap
@@ -241,10 +214,13 @@ where
 | ASIDPoolCap p base \<Rightarrow>
   if invocation_type label = ArchInvocationLabel ARMASIDPoolAssign then
   if length extra_caps > 0
-  then 
-    let (pd_cap, pd_cap_slot) = extra_caps ! 0
-     in case pd_cap of
-          ArchObjectCap (PageDirectoryCap _ None) \<Rightarrow> doE
+  then
+    if invocation_type label = ARMASIDPoolAssign then
+    if length extra_caps > 0
+    then
+    let (pt_cap, pt_cap_slot) = extra_caps ! 0
+     in case pt_cap of
+          ArchObjectCap (PageTableCap PT_L1 _ None) \<Rightarrow> doE
             asid_table \<leftarrow> liftE $ gets (arm_asid_table \<circ> arch_state);
             pool_ptr \<leftarrow> returnOk (asid_table (asid_high_bits_of base));
             whenE (pool_ptr = None) $ throwError $ FailedLookup False InvalidRoot;
@@ -254,11 +230,58 @@ where
                    (- dom pool \<inter> {x. x \<le> 2 ^ asid_low_bits - 1 \<and> ucast x + base \<noteq> 0});
             whenE (free_set = {}) $ throwError DeleteFirst;
             offset \<leftarrow> liftE $ select_ext (\<lambda>_. free_asid_pool_select pool base) free_set;
-            returnOk $ InvokeASIDPool $ Assign (ucast offset + base) p pd_cap_slot
+            returnOk $ InvokeASIDPool $ Assign (ucast offset + base) p pt_cap_slot
           odE
         | _ \<Rightarrow>  throwError $ InvalidCapability 1
-  else  throwError TruncatedMessage
-  else  throwError IllegalOperation"
+    else  throwError TruncatedMessage
+    else  throwError IllegalOperation
+| VCPUCap vcpu_ref \<Rightarrow>
+    if invocation_type label = ARMVCPUDissociate then
+      returnOk $ InvokeVCPU $ VCPUDissociate vcpu_ref
+    else if invocation_type label = ARMVCPUAssociate then
+      if length extra_caps > 0 then
+      let (tcb_cap, _) = extra_caps ! 0 in
+      case tcb_cap of
+        ThreadCap tcb_ref \<Rightarrow> doE
+          (tcb_opt, _) \<leftarrow> liftE $ get_vcpu vcpu_ref;
+          whenE (tcb_opt \<noteq> None) $ throwError DeleteFirst;
+          vcpu_opt \<leftarrow> liftE $ thread_get tcb_vcpu tcb_ref;
+          whenE (vcpu_opt \<noteq> None) $ throwError DeleteFirst;
+          returnOk $ InvokeVCPU $ VCPUAssociate vcpu_ref tcb_ref
+        odE
+      | _ \<Rightarrow> throwError $ InvalidCapability 1
+      else throwError TruncatedMessage
+    else if invocation_type label = ARMVCPUReadRegister then
+    case args of
+      reg # _ \<Rightarrow> doE
+        whenE (reg > max_hyper_reg) $ throwError $ RangeError 0 max_hyper_reg;
+        returnOk $ InvokeVCPU $ VCPUReadRegister vcpu_ref (toEnum (unat reg))
+      odE
+    | _ \<Rightarrow> throwError TruncatedMessage
+    else if invocation_type label = ARMVCPUWriteRegister then
+    case args of
+      reg # val # _ \<Rightarrow> doE
+        whenE (reg > max_hyper_reg) $ throwError $ RangeError 0 max_hyper_reg;
+        returnOk $ InvokeVCPU $ VCPUWriteRegister vcpu_ref (toEnum (unat reg)) val
+      odE
+    | _ \<Rightarrow> throwError TruncatedMessage
+    else throwError IllegalOperation
+| IOSpaceCap (Some dev) \<Rightarrow> 
+    if invocation_type label = ARMIOSpaceMap then
+      if length extra_caps > 0 then
+      let (pt_cap, pt_slot) = extra_caps ! 0 in
+        case pt_cap of
+          ArchObjectCap (PageTableCap PT_L1 pt None) \<Rightarrow> doE
+            pt_opt \<leftarrow> liftE $ get_io_pt dev;
+            whenE (pt_opt \<noteq> None) $ throwError DeleteFirst;
+            returnOk $ InvokeIOSpace $ IOSpaceMap dev pt pt_slot
+          odE
+        | _ \<Rightarrow> throwError $ InvalidCapability 1
+      else throwError TruncatedMessage
+    else if invocation_type label = ARMIOSpaceUnmap then
+      returnOk $ InvokeIOSpace $ IOSpaceUnmap dev
+    else throwError IllegalOperation
+| IOSpaceCap _ \<Rightarrow> throwError IllegalOperation"
 
 
 text "ARM does not support additional interrupt control operations"
@@ -269,13 +292,12 @@ definition
 
 definition
   arch_data_to_obj_type :: "nat \<Rightarrow> aobject_type option" where
- "arch_data_to_obj_type n \<equiv>
-  if n = 0 then Some SmallPageObj
-  else if n = 1 then Some LargePageObj
-  else if n = 2 then Some SectionObj
-  else if n = 3 then Some SuperSectionObj
-  else if n = 4 then Some PageTableObj
-  else if n = 5 then Some PageDirectoryObj
-  else None"
+ "arch_data_to_obj_type \<equiv>
+ [ 0 \<mapsto> ARM_4K_PageObj,
+   1 \<mapsto> ARM_2M_BlockObj,
+   2 \<mapsto> ARM_1G_BlockObj,
+   3 \<mapsto> PageTableObj PT_L3,
+   4 \<mapsto> PageTableObj PT_L2,
+   5 \<mapsto> PageTableObj PT_L1 ]"
 
 end

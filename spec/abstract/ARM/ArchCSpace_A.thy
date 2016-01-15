@@ -28,6 +28,7 @@ definition
 
 text {* Check whether the second capability is to the same object or an object
 contained in the region of the first one. *}
+(* FIXME ARMHYP pageBitsForSize or page_bits_for_size? *)
 fun
   arch_same_region_as :: "arch_cap \<Rightarrow> arch_cap \<Rightarrow> bool"
 where
@@ -36,10 +37,12 @@ where
      topA = r + (1 << pageBitsForSize s) - 1;
      topB = r' + (1 << pageBitsForSize s') - 1
    in r \<le> r' \<and> topA \<ge> topB \<and> r' \<le> topB)"
-| "arch_same_region_as (PageTableCap r x) (PageTableCap r' x') = (r' = r)"
-| "arch_same_region_as (PageDirectoryCap r x) (PageDirectoryCap r' x') = (r' = r)"
+| "arch_same_region_as (PageTableCap l r x) (PageTableCap l' r' x') = (r' = r \<and> l' = l)"
 | "arch_same_region_as ASIDControlCap ASIDControlCap = True"
 | "arch_same_region_as (ASIDPoolCap r a) (ASIDPoolCap r' a') = (r' = r)"
+| "arch_same_region_as (VCPUCap r) (VCPUCap r') = (r' = r)"
+| "arch_same_region_as (IOSpaceCap None) (IOSpaceCap _) = True"
+| "arch_same_region_as (IOSpaceCap (Some d)) (IOSpaceCap (Some d')) = (d = d')"
 | "arch_same_region_as _ _ = False"
 
 

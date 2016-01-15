@@ -31,6 +31,7 @@ text {*
 *}
 type_synonym obj_ref            = machine_word
 type_synonym vspace_ref         = machine_word
+type_synonym vaddr              = "32 word"
 type_synonym data_offset        = "12 word"
 
 type_synonym data               = machine_word

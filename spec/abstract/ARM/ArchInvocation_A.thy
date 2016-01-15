@@ -31,7 +31,7 @@ datatype page_directory_invocation =
   | PageDirectoryNothing
 
 datatype page_table_invocation = 
-    PageTableMap cap cslot_ptr pde obj_ref
+    PageTableMap cap cslot_ptr pte obj_ref
   | PageTableUnmap cap cslot_ptr
 
 datatype asid_control_invocation = 
@@ -42,13 +42,13 @@ datatype asid_pool_invocation =
 
 datatype page_invocation
      = PageMap 
-         (page_map_asid: asid)
          (page_map_cap: cap)
          (page_map_ct_slot: cslot_ptr)
-         (page_map_entries: "pte \<times> (obj_ref list) + pde \<times> (obj_ref list)")
+         (page_map_entry: "pte \<times> obj_ref list")
+         (page_map_root: mapping_root)
      | PageRemap
-         (page_remap_asid: asid)
-         (page_remap_entries: "pte \<times> (obj_ref list) + pde \<times> (obj_ref list)")
+         (page_remap_entry: "pte \<times> obj_ref list")
+         (page_remap_root: mapping_root)
      | PageUnmap 
          (page_unmap_cap: arch_cap)
          (page_unmap_cap_slot: cslot_ptr)
@@ -62,12 +62,24 @@ datatype page_invocation
      | PageGetAddr
          (page_get_paddr: obj_ref)
 
+datatype vcpu_invocation =
+       VCPUAssociate obj_ref obj_ref
+     | VCPUDissociate obj_ref
+     | VCPUReadRegister obj_ref hyper_reg
+     | VCPUWriteRegister obj_ref hyper_reg machine_word
+
+datatype io_space_invocation =
+       IOSpaceMap device_id obj_ref cslot_ptr
+     | IOSpaceUnmap device_id
+
 datatype arch_invocation
      = InvokePageTable page_table_invocation
      | InvokePageDirectory page_directory_invocation
      | InvokePage page_invocation
      | InvokeASIDControl asid_control_invocation
      | InvokeASIDPool asid_pool_invocation
+     | InvokeVCPU vcpu_invocation
+     | InvokeIOSpace io_space_invocation
 
 datatype arch_copy_register_sets =
     ArchDefaultExtraRegisters

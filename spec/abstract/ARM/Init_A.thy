@@ -24,12 +24,6 @@ text {*
   show that the invariants and refinement relation are consistent. 
 *}
 
-(* Moved to Deterministic_A
-definition
-  idle_thread_ptr :: word32 where
-  "idle_thread_ptr = kernel_base + 0x1000"
-*)
-
 definition
   init_tcb_ptr :: word32 where
   "init_tcb_ptr = kernel_base + 0x2000"
@@ -43,8 +37,8 @@ definition
   "init_globals_frame = kernel_base + 0x5000"
 
 definition
-  init_global_pd :: word32 where
-  "init_global_pd = kernel_base + 0x60000"
+  init_global_pt :: word32 where
+  "init_global_pt = kernel_base + 0x60000"
 
 definition
   "init_arch_state \<equiv> \<lparr>
@@ -53,12 +47,13 @@ definition
     arm_hwasid_table = empty,
     arm_next_asid = 0,
     arm_asid_map = empty,
-    arm_global_pd = init_global_pd,
-    arm_global_pts = [],
+    arm_global_l1_pt = init_global_pt,
+    arm_global_l2_pts = [],
     arm_kernel_vspace = \<lambda>ref.
       if ref \<in> {kernel_base .. kernel_base + mask 20}
       then ArmVSpaceKernelWindow 
-      else ArmVSpaceInvalidRegion
+      else ArmVSpaceInvalidRegion,
+    arm_io_space = empty
   \<rparr>"
 
 definition
@@ -67,7 +62,8 @@ definition
 
 definition
   [simp]:
-  "global_pd \<equiv> (\<lambda>_. InvalidPDE)( ucast (kernel_base >> 20) := SectionPDE (addrFromPPtr kernel_base) {} 0 {})"
+  "global_pd \<equiv> (\<lambda>_. InvalidPTE)(ucast (kernel_base >> 20) := Block_2M_PTE (ucast (addrFromPPtr kernel_base)) {} {})"
+(* FIXME ARMHYP: are we happy calling this global_pd? *)
 
 definition
   "init_kheap \<equiv>
@@ -84,10 +80,11 @@ definition
     tcb_ipc_buffer = 0,
     tcb_context = empty_context,
     tcb_fault = None,
-    tcb_bound_notification = None
+    tcb_bound_notification = None,
+    tcb_vcpu = None
   \<rparr>, 
-  init_globals_frame \<mapsto> ArchObj (DataPage ARMSmallPage),
-  init_global_pd \<mapsto> ArchObj (PageDirectory global_pd)
+  init_globals_frame \<mapsto> ArchObj (DataPage ARM_4K_Page),
+  init_global_pt \<mapsto> ArchObj (PageTable global_pd)
   )"
 
 definition

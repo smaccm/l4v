@@ -354,6 +354,7 @@ record tcb =
  tcb_context       :: user_context
  tcb_fault         :: "fault option"
  tcb_bound_notification     :: "obj_ref option"
+ tcb_vcpu          :: "obj_ref option"
 
 
 text {* Determines whether a thread in a given state may be scheduled. *}
@@ -383,7 +384,8 @@ definition
       tcb_ipc_buffer = 0,
       tcb_context    = new_context,
       tcb_fault      = None, 
-      tcb_bound_notification  = None \<rparr>"
+      tcb_bound_notification  = None,
+      tcb_vcpu       = None \<rparr>"
 
 text {*
 All kernel objects are CNodes, TCBs, Endpoints, Notifications or architecture

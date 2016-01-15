@@ -19,7 +19,7 @@ imports
   Interrupt_A
   "./$L4V_ARCH/ArchDecode_A"
   "../../lib/WordLib"
-  "../design/InvocationLabels_H"
+  InvocationLabels_A (* FIXME ARMHYP: "../design/InvocationLabels_H" *)
 begin
 
 text {*
@@ -137,13 +137,9 @@ odE"
 
 section "Threads"
 
-text {* The definitions in this section decode invocations 
-on TCBs.
-*}
+text {* The definitions in this section decode invocations on TCBs. *}
 
-text {* This definition checks whether the first argument is 
-between the second and third. 
-*}
+text {* This definition checks whether the first argument is between the second and third. *}
 
 definition
   range_check :: "machine_word \<Rightarrow> machine_word \<Rightarrow> machine_word \<Rightarrow> (unit,'z::state_ext) se_monad"

@@ -440,6 +440,7 @@ where
       do
          when final $ unbind_notification r;
          when final $ suspend r;
+         when final $ dissociate_tcb r;
          return (if final then (Zombie r None 5) else NullCap, None)
       od"
 | "finalise_cap DomainCap                final = return (NullCap, None)"
