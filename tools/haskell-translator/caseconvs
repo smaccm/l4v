@@ -1608,3 +1608,9 @@ case \x of cap@(PageCap {}) -> cap@(PDPointerTableCap {}) -> cap@(PageDirectoryC
 
 case \x of (ArchInvocationLabel X64PDPTMap, vaddr':attr:_, (vspaceCap,_):_) -> (ArchInvocationLabel X64PDPTMap, _, _) -> (ArchInvocationLabel X64PDPTUnmap, _, _) -> _ ->  ---X>
 
+case \x of ARM_1G_Block -> ARM_2M_Block -> ARM_4K_Page ->  ---> let sz = \x in
+    case sz of
+      ARM_1G_Block => ->1
+    | ARM_2M_Block => ->2 
+    | ARM_4K_Page => ->3
+

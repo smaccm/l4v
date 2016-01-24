@@ -178,9 +178,9 @@ perform_page_table_invocation :: "page_table_invocation \<Rightarrow> (unit,'z::
       Some (m_root, vaddr) \<Rightarrow> do
         unmap_page_table m_root vaddr l p;
         pte_bits \<leftarrow> return 3;
-        slots \<leftarrow> return [p, p + (1 << pte_bits) .e. p + (1 << pt_bits) - 1];
+        slots \<leftarrow> return [p, p + (1 << pte_bits) .e. p + (1 << ptBits) - 1];
         mapM_x (swp store_pte InvalidPTE) slots;
-        do_machine_op $ cleanCacheRange_PoU p (p + (1 << pt_bits) - 1) (addrFromPPtr p)
+        do_machine_op $ cleanCacheRange_PoU p (p + (1 << ptBits) - 1) (addrFromPPtr p)
       od
       | None \<Rightarrow> return ();
     cap \<leftarrow> liftM the_arch_cap $ get_cap ct_slot;

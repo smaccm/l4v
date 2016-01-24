@@ -35,6 +35,12 @@ datatype arch_invocation_label =
   | ARMPageGetAddress
   | ARMASIDControlMakePool
   | ARMASIDPoolAssign
+  | ARMVCPUDissociate
+  | ARMVCPUAssociate
+  | ARMVCPUReadRegister
+  | ARMVCPUWriteRegister
+  | ARMIOSpaceMap
+  | ARMIOSpaceUnmap
 
 (* arch_invocation_label instance proofs *)
 (*<*)
@@ -57,7 +63,13 @@ definition
       ARMPageUnify_Instruction,
       ARMPageGetAddress,
       ARMASIDControlMakePool,
-      ARMASIDPoolAssign
+      ARMASIDPoolAssign,
+      ARMVCPUDissociate,
+      ARMVCPUAssociate,
+      ARMVCPUReadRegister,
+      ARMVCPUWriteRegister,
+      ARMIOSpaceMap,
+      ARMIOSpaceUnmap
     ]"
 
 

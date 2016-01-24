@@ -40,45 +40,6 @@ text {*  The ARM kernel supports capabilities for ASID pools and an ASID control
 along with capabilities for page tables, page mappings, System-MMU IO spaces, and 
 virtual CPU contexts for hyper calls. *}
 
--- "up to three levels of translation, cf B3.3, pg 1318"
-datatype pt_level = PT_L1 | PT_L2 | PT_L3
-
-instantiation pt_level :: enum
-begin
-definition
-  enum_pt_level: "enum_class.enum \<equiv> [PT_L1,PT_L2,PT_L3]"
-definition 
-  "enum_class.enum_all (P::pt_level \<Rightarrow> bool) \<equiv> Ball UNIV P"
-definition
-  "enum_class.enum_ex (P::pt_level \<Rightarrow> bool) \<equiv> Bex UNIV P"
-instance
-  apply intro_classes
-  apply (safe, simp)
-  apply (case_tac x)
-  apply (auto simp: enum_pt_level enum_ex_pt_level_def enum_all_pt_level_def)
-  done
-end
-
--- "all page tables take 4K, cf B3.3, pg 1318 (512 entries, 64 bit per entry)."
-definition
-  pt_bits :: "nat" where
-  "pt_bits \<equiv> 12"
-
--- "cf B3.6, pg 1338"
-datatype vmpage_size =
-    ARM_1G_Block
-  | ARM_2M_Block
-  | ARM_4K_Page
-
--- {* convert page size into bits, such that @{term "2^bits = sz"} *}
-definition
-  page_bits_for_size :: "vmpage_size \<Rightarrow> nat" where
-  "page_bits_for_size sz \<equiv> case sz of
-    ARM_1G_Block \<Rightarrow> 30
-  | ARM_2M_Block \<Rightarrow> 21
-  | ARM_4K_Page \<Rightarrow> 12"
-(* FIXME ARMHYP how is this related to pageBitsForSize? Equal modulo updating Haskell? *)
-
 -- "unique device identifiers, board/vendor specific"
 typedecl device_id
 
@@ -177,7 +138,7 @@ primrec
 where
   "arch_obj_size (ASIDPoolCap p as) = pageBits"
 | "arch_obj_size ASIDControlCap = 0"
-| "arch_obj_size (PageCap _ _ sz _) = page_bits_for_size sz"
+| "arch_obj_size (PageCap _ _ sz _) = pageBitsForSize sz"
 | "arch_obj_size (PageTableCap _ _ _) = 12"
 | "arch_obj_size (VCPUCap _) = 11"
 | "arch_obj_size (IOSpaceCap _) = 0"
@@ -186,9 +147,9 @@ primrec
   arch_kobj_size :: "arch_kernel_obj \<Rightarrow> nat"
 where
   "arch_kobj_size (ASIDPool _) = pageBits"
-| "arch_kobj_size (PageTable _) = pt_bits"
+| "arch_kobj_size (PageTable _) = ptBits"
 | "arch_kobj_size (VCPU _ _) = 11"
-| "arch_kobj_size (DataPage sz) = page_bits_for_size sz"
+| "arch_kobj_size (DataPage sz) = pageBitsForSize sz"
 (* FIXME ARMHYP: vcpu_bits? *)
 
 primrec

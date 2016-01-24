@@ -129,7 +129,7 @@ definition
         then NullCap
         else CNodeCap oref bits guard'
   else if is_arch_cap cap then
-    arch_update_cap_data w (the_arch_cap cap)
+    ArchObjectCap $ arch_update_cap_data w (the_arch_cap cap)
   else
     cap"
 

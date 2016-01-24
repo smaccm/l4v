@@ -44,10 +44,10 @@ datatype page_invocation
      = PageMap 
          (page_map_cap: cap)
          (page_map_ct_slot: cslot_ptr)
-         (page_map_entry: "pte \<times> obj_ref list")
+         (page_map_entry: "pte \<times> obj_ref")
          (page_map_root: mapping_root)
      | PageRemap
-         (page_remap_entry: "pte \<times> obj_ref list")
+         (page_remap_entry: "pte \<times> obj_ref")
          (page_remap_root: mapping_root)
      | PageUnmap 
          (page_unmap_cap: arch_cap)

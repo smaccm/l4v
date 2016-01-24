@@ -16,6 +16,11 @@ begin
 
 type_synonym irq = "Platform.irq"
 
+datatype pt_level =
+    PT_L1
+  | PT_L2
+  | PT_L3
+
 type_synonym paddr = "Platform.paddr"
 
 datatype vmrights =
@@ -360,15 +365,51 @@ where
 "clearExMonitor\<equiv> return ()"
 
 definition
-pdBits :: "nat"
-where
-"pdBits \<equiv> pageBits + 2"
-
-definition
 ptBits :: "nat"
 where
-"ptBits \<equiv> pageBits - 2"
+"ptBits \<equiv> 12"
 
+
+(* pt_level instance proofs *)
+(*<*)
+instantiation pt_level :: enum begin
+definition
+  enum_pt_level: "enum_class.enum \<equiv> 
+    [ 
+      PT_L1,
+      PT_L2,
+      PT_L3
+    ]"
+
+
+definition
+  "enum_class.enum_all (P :: pt_level \<Rightarrow> bool) \<longleftrightarrow> Ball UNIV P"
+
+definition
+  "enum_class.enum_ex (P :: pt_level \<Rightarrow> bool) \<longleftrightarrow> Bex UNIV P"
+
+  instance
+  apply intro_classes
+   apply (safe, simp)
+   apply (case_tac x)
+  apply (simp_all add: enum_pt_level enum_all_pt_level_def enum_ex_pt_level_def)
+  by fast+
+end
+
+instantiation pt_level :: enum_alt
+begin
+definition
+  enum_alt_pt_level: "enum_alt \<equiv> 
+    alt_from_ord (enum :: pt_level list)"
+instance ..
+end
+
+instantiation pt_level :: enumeration_both
+begin
+instance by (intro_classes, simp add: enum_alt_pt_level)
+end
+
+(*>*)
 
 (* vmrights instance proofs *)
 (*<*)

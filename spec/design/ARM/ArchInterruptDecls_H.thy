@@ -13,10 +13,10 @@ imports "../RetypeDecls_H" "../CNode_H"
 begin
 
 consts
-decodeIRQControl :: "machine_word \<Rightarrow> machine_word list \<Rightarrow> machine_word \<Rightarrow> capability list \<Rightarrow> ( syscall_error , ArchRetypeDecls_H.irqcontrol_invocation ) kernel_f"
+decodeIRQControlInvocation :: "machine_word \<Rightarrow> machine_word list \<Rightarrow> machine_word \<Rightarrow> capability list \<Rightarrow> ( syscall_error , ArchInv.irqcontrol_invocation ) kernel_f"
 
 consts
-performIRQControl :: "ArchRetypeDecls_H.irqcontrol_invocation \<Rightarrow> unit kernel_p"
+performIRQControl :: "ArchInv.irqcontrol_invocation \<Rightarrow> unit kernel_p"
 
 
 end

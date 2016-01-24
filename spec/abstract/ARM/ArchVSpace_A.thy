@@ -27,21 +27,21 @@ where
   "create_mapping_entry base vptr ARM_4K_Page vm_rights attrib pt =
   doE
     pte_ref \<leftarrow> lookup_error_on_failure False $ lookup_pt_slot PT_L3 pt vptr;
-    returnOk (PagePTE (ucast (base >> page_bits_for_size ARM_4K_Page))
+    returnOk (PagePTE (ucast (base >> pageBitsForSize ARM_4K_Page))
                       (attrib - {Global, ParityEnabled}) vm_rights, pte_ref)
   odE"
 |
   "create_mapping_entry base vptr ARM_2M_Block vm_rights attrib pt =
   doE
     pte_ref \<leftarrow> lookup_error_on_failure False $ lookup_pt_slot PT_L2 pt vptr;
-    returnOk (Block_2M_PTE (ucast (base >> page_bits_for_size ARM_2M_Block))
+    returnOk (Block_2M_PTE (ucast (base >> pageBitsForSize ARM_2M_Block))
                            (attrib - {Global, ParityEnabled}) vm_rights, pte_ref)
   odE"
 |
   "create_mapping_entry base vptr ARM_1G_Block vm_rights attrib pt =
   doE
     pte_ref \<leftarrow> lookup_error_on_failure False $ lookup_pt_slot PT_L1 pt vptr;
-    returnOk (Block_2M_PTE (ucast (base >> page_bits_for_size ARM_1G_Block))
+    returnOk (Block_2M_PTE (ucast (base >> pageBitsForSize ARM_1G_Block))
                            (attrib - {Global, ParityEnabled}) vm_rights, pte_ref)
   odE"
 
@@ -90,7 +90,7 @@ lookup_ipc_buffer :: "bool \<Rightarrow> word32 \<Rightarrow> (word32 option,'z:
     (case buffer_cap of
       ArchObjectCap (PageCap p R vms _) \<Rightarrow>
         if vm_read_write \<subseteq> R \<or> vm_read_only \<subseteq> R \<and> \<not>is_receiver
-        then return $ Some $ p + (buffer_ptr && mask (page_bits_for_size vms))
+        then return $ Some $ p + (buffer_ptr && mask (pageBitsForSize vms))
         else return None
     | _ \<Rightarrow> return None)
 od"
@@ -392,7 +392,7 @@ flush_table :: "word32 \<Rightarrow> mapping_root \<Rightarrow> vspace_ref \<Rig
   case m of
     MappedMem asid \<Rightarrow>
     do
-      assert (vptr && mask (page_bits_for_size ARM_2M_Block) = 0);
+      assert (vptr && mask (pageBitsForSize ARM_2M_Block) = 0);
       root_switched \<leftarrow> set_vm_root_for_flush pt asid;
       maybe_hw_asid \<leftarrow> load_hw_asid asid;
       when (maybe_hw_asid \<noteq> None) $ do
@@ -440,7 +440,7 @@ where
     pte \<leftarrow> liftE $ get_pte pt_slot;
     case pte of
       TablePTE addr _ \<Rightarrow> returnOk $
-             if addrFromPPtr pt = ucast addr << pt_bits then Some pt1 else None
+             if addrFromPPtr pt = ucast addr << ptBits then Some pt1 else None
     | _ \<Rightarrow> returnOk None
 odE <catch> (K $ return None))"
 
@@ -477,7 +477,7 @@ fun
   addr_from_pte :: "pte \<Rightarrow> obj_ref"
 where
   "addr_from_pte InvalidPTE = 0" |
-  "addr_from_pte (TablePTE ref _) = ucast ref << pt_bits" |
+  "addr_from_pte (TablePTE ref _) = ucast ref << ptBits" |
   "addr_from_pte (Block_1G_PTE ref _ _) = ucast ref << 30" |
   "addr_from_pte (Block_2M_PTE ref _ _) = ucast ref << 21" |
   "addr_from_pte (PagePTE ref _ _) = ucast ref << pageBits"
@@ -664,15 +664,15 @@ definition
 where
   "arch_recycle_cap is_final cap \<equiv> case cap of
     PageCap p _ sz _ \<Rightarrow> do
-      do_machine_op $ clearMemory p (2 ^ (page_bits_for_size sz));
+      do_machine_op $ clearMemory p (2 ^ (pageBitsForSize sz));
       arch_finalise_cap cap is_final;
       return $ arch_reset_mem_mapping cap
     od
   | PageTableCap level ptr mp \<Rightarrow> do
       pte_bits \<leftarrow> return 3;
-      slots \<leftarrow> return [ptr, ptr + (1 << pte_bits) .e. ptr + (1 << pt_bits) - 1];
+      slots \<leftarrow> return [ptr, ptr + (1 << pte_bits) .e. ptr + (1 << ptBits) - 1];
       mapM_x (swp store_pte InvalidPTE) slots;
-      do_machine_op $ cleanCacheRange_PoU ptr (ptr + (1 << pt_bits) - 1) (addrFromPPtr ptr);
+      do_machine_op $ cleanCacheRange_PoU ptr (ptr + (1 << ptBits) - 1) (addrFromPPtr ptr);
       case mp of 
          None \<Rightarrow> return ()
        | Some (m, v) \<Rightarrow>
@@ -777,26 +777,31 @@ definition
                                      | PageTableCap l p _ \<Rightarrow> PageTableCap l p m"
 
 text {* Get information about the frame of a given virtual address *}
+(* FIXME ARMHYP want another pair of eyes on this; want to generalise these, not nest them *)
 definition
   resolve_vaddr :: "word32 \<Rightarrow> vspace_ref \<Rightarrow> ((vmpage_size \<times> obj_ref) option, 'z::state_ext) s_monad"
 where
-  "resolve_vaddr pd vaddr \<equiv> do
-     pd_slot \<leftarrow> return $ lookup_pd_slot pd vaddr;
-     pde \<leftarrow> get_master_pde pd_slot;
-     case pde of 
-         SectionPDE f _ _ _ \<Rightarrow> return $ Some (ARMSection, f)
-       | SuperSectionPDE f _ _ \<Rightarrow> return $ Some (ARMSuperSection, f)
-       | PageTablePDE t _ _ \<Rightarrow> (do
-           pt \<leftarrow> return $ ptrFromPAddr t;
-           pte_slot \<leftarrow> return $ lookup_pt_slot_no_fail pt vaddr;
-           pte \<leftarrow> get_master_pte pte_slot;
-           case pte of
-               LargePagePTE f _ _ \<Rightarrow> return $ Some (ARMLargePage, f)
-             | SmallPagePTE f _ _ \<Rightarrow> return $ Some (ARMSmallPage, f)
-             | _ \<Rightarrow> return None
-         od)
-       | _ \<Rightarrow> return None
-   od"
+  "resolve_vaddr root_pt va \<equiv> do
+    pt_slot \<leftarrow> return $ pte_slot PT_L1 root_pt va;
+    pte \<leftarrow> get_pte pt_slot;
+    case pte of
+      Block_1G_PTE _ _ _ \<Rightarrow> (return $ Some (ARM_1G_Block, addr_from_pte pte))
+    | TablePTE _ _ \<Rightarrow> do
+        pt_slot \<leftarrow> return $ pte_slot PT_L2 (addr_from_pte pte) va;
+        pte \<leftarrow> get_pte pt_slot;
+        case pte of
+          Block_2M_PTE _ _ _ \<Rightarrow> (return $ Some (ARM_2M_Block, addr_from_pte pte))
+        | TablePTE _ _ \<Rightarrow> do
+            pt_slot \<leftarrow> return $ pte_slot PT_L2 (addr_from_pte pte) va;
+            pte \<leftarrow> get_pte pt_slot;
+            case pte of
+              PagePTE _ _ _ \<Rightarrow> (return $ Some (ARM_4K_Page, addr_from_pte pte))
+              | _ \<Rightarrow> return None
+          od
+        | _ \<Rightarrow> return None
+      od
+    | _ \<Rightarrow> return None
+  od"
 
 text {*
   A pointer is inside a user frame if its top bits point to a @{text DataPage}.

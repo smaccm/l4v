@@ -18,7 +18,7 @@ imports
   Platform
 begin
 
-(* !!! Generated File !!! Skeleton in ../haskell-translator/ARMMachineTypes.thy *)
+(* !!! Generated File !!! Skeleton in spec/design/m-skel/ARM/MachineTypes.thy *)
 
 text {*
   An implementation of the machine's types, defining register set 
@@ -109,7 +109,7 @@ definition
 
 
 (* Machine/Hardware/ARM.lhs - hardware_asid, vmfault_type and vmpage_size *)
-#INCLUDE_HASKELL SEL4/Machine/Hardware/ARM.lhs ONLY HardwareASID VMFaultType VMPageSize pageBits pageBitsForSize
-#INCLUDE_HASKELL SEL4/Machine/Hardware/ARM.lhs instanceproofs ONLY HardwareASID VMFaultType VMPageSize
+#INCLUDE_HASKELL SEL4/Machine/Hardware/ARM.lhs ONLY HardwareASID VMFaultType VMPageSize pageBits pageBitsForSize PT_Level ptBits
+#INCLUDE_HASKELL SEL4/Machine/Hardware/ARM.lhs instanceproofs ONLY HardwareASID VMFaultType VMPageSize PT_Level
 
 end

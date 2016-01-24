@@ -92,8 +92,8 @@ text {* The following function takes a pointer to a PTE in kernel memory
 definition
   get_pte :: "obj_ref \<Rightarrow> (pte,'z::state_ext) s_monad" where
   "get_pte ptr \<equiv> do
-     base \<leftarrow> return (ptr && ~~mask pt_bits);
-     offset \<leftarrow> return (ptr && mask pt_bits >> 3);
+     base \<leftarrow> return (ptr && ~~mask ptBits);
+     offset \<leftarrow> return (ptr && mask ptBits >> 3);
      pt \<leftarrow> get_pt base;
      return $ pt (ucast offset)
    od"
@@ -101,8 +101,8 @@ definition
 definition
   store_pte :: "obj_ref \<Rightarrow> pte \<Rightarrow> (unit,'z::state_ext) s_monad" where
   "store_pte p pte \<equiv> do
-    base \<leftarrow> return (p && ~~mask pt_bits);
-    offset \<leftarrow> return (p && mask pt_bits >> 2);
+    base \<leftarrow> return (p && ~~mask ptBits);
+    offset \<leftarrow> return (p && mask ptBits >> 2);
     pt \<leftarrow> get_pt base;
     pt' \<leftarrow> return $ pt (ucast offset := pte);
     set_pt base pt'
@@ -119,7 +119,7 @@ copy_global_mappings :: "obj_ref \<Rightarrow> (unit,'z::state_ext) s_monad" whe
 "copy_global_mappings new_pt \<equiv> do
     global_pt \<leftarrow> gets (arm_global_l1_pt \<circ> arch_state);
     pte_bits \<leftarrow> return 3;
-    pd_size \<leftarrow> return (1 << (pt_bits - pte_bits));
+    pd_size \<leftarrow> return (1 << (ptBits - pte_bits));
     mapM_x (\<lambda>index. do
         offset \<leftarrow> return (index << pte_bits);
         pde \<leftarrow> get_pte (global_pt + offset);
@@ -138,7 +138,7 @@ definition level_bits :: "pt_level \<Rightarrow> nat" where
   "level_bits level \<equiv> case level of
     PT_L1 \<Rightarrow> 30
   | PT_L2 \<Rightarrow> 21
-  | PT_L3 \<Rightarrow> pt_bits"
+  | PT_L3 \<Rightarrow> ptBits"
 
 definition pt_index_of :: "pt_level \<Rightarrow> vspace_ref \<Rightarrow> 32 word" where
   "pt_index_of l va \<equiv> let m = level_bits l in
@@ -167,7 +167,7 @@ definition
     pt_slot \<leftarrow> returnOk (pte_slot l pt_ref vptr);
     pte \<leftarrow> liftE $ get_pte pt_slot;
     (case pte of
-      TablePTE ptab _ \<Rightarrow> returnOk $ ptrFromPAddr (ucast ptab << pt_bits)
+      TablePTE ptab _ \<Rightarrow> returnOk $ ptrFromPAddr (ucast ptab << ptBits)
     | _ \<Rightarrow> throwError $ MissingCapability 20)
   odE"
 
@@ -175,6 +175,7 @@ text {* Look up the (kernel-memory) address of the PTE in the
   page table specified by @{text vptr}, from page table root
   @{text pt_ref}, translating up to the specified level.
   Fails if any of the translation steps are via TablePTEs. *}
+(* FIXME ARMHYP these names don't appear make sense ... vptr for a page table? *)
 fun
   lookup_pt_slot :: "pt_level \<Rightarrow> obj_ref \<Rightarrow> vspace_ref \<Rightarrow> (obj_ref,'z::state_ext) lf_monad"
 where
@@ -192,8 +193,8 @@ where
     returnOk $ pte_slot PT_L3 pt3 vptr
   odE"
 
-
-text {* A non-failing version of @{const lookup_pt_slot} when the pd is already known *}
+text {* A non-failing version of @{const lookup_pt_slot} when the level one pt is already known *}
+(* FIXME ARMHYP do we even use this? *)
 definition 
   lookup_pt_slot_no_fail :: "word32 \<Rightarrow> vspace_ref \<Rightarrow> word32"
 where

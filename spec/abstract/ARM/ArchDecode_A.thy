@@ -57,7 +57,7 @@ text {* This definition decodes architecture-specific invocations.
  definition
   table_addr_from_ref :: "obj_ref \<Rightarrow> 20 word"
 where
-  "table_addr_from_ref r \<equiv> ucast ((addrFromPPtr r) >> pt_bits)"
+  "table_addr_from_ref r \<equiv> ucast ((addrFromPPtr r) >> ptBits)"
 
 definition max_hyper_reg :: machine_word where
   "max_hyper_reg \<equiv> of_nat (fromEnum (maxBound::hyper_reg))"
@@ -68,8 +68,7 @@ definition
    (arch_invocation,'z::state_ext) se_monad"
 where
 "arch_decode_invocation label args x_slot cte cap extra_caps \<equiv> case cap of
-
-| PageTableCap PT_L1 _ _ \<Rightarrow> throwError IllegalOperation
+  PageTableCap PT_L1 _ _ \<Rightarrow> throwError IllegalOperation
 | PageTableCap level p mapped_address \<Rightarrow> 
     if invocation_type label = ArchInvocationLabel ARMPageTableMap then
     if length args > 1 \<and> length extra_caps > 0
@@ -78,7 +77,6 @@ where
              pt'_cap = fst (extra_caps ! 0)
     in doE
             whenE (mapped_address \<noteq> None) $ throwError $ InvalidCapability 0;
-
             (level',pt',m_root) \<leftarrow> (case pt'_cap of
                             ArchObjectCap (PageTableCap level' pt' (Some (m_root,_))) \<Rightarrow> 
                               if level' = pred_level level then
@@ -98,7 +96,7 @@ where
             returnOk $ InvokePageTable $ 
                 PageTableMap
                 (ArchObjectCap $ PageTableCap level p (Some (m_root, vaddr')))
-                cte pde pt_slot
+                cte pte pt_slot
     odE
     else throwError TruncatedMessage
     else if invocation_type label = ArchInvocationLabel ARMPageTableUnmap
@@ -108,7 +106,6 @@ where
             returnOk $ InvokePageTable $ PageTableUnmap (ArchObjectCap cap) cte
     odE
     else throwError IllegalOperation
-
 | PageCap p R pgsz mapped_address \<Rightarrow>
     if invocation_type label = ArchInvocationLabel ARMPageMap then
     if length args > 2 \<and> length extra_caps > 0
@@ -117,13 +114,14 @@ where
              attr = args ! 2;
              pt_cap = fst (extra_caps ! 0)
         in doE
+            whenE (mapped_address \<noteq> None) $ throwError $ InvalidCapability 0;
             (pt,m_root) \<leftarrow> (case pt_cap of
                               ArchObjectCap (PageTableCap PT_L1 pt (Some (m_root,_))) \<Rightarrow> 
                                 returnOk (pt,m_root)
                            | _ \<Rightarrow> throwError $ InvalidCapability 1);
             pt' \<leftarrow> lookup_error_on_failure False $ find_root_pt m_root;
             whenE (pt' \<noteq> pt) $ throwError $ InvalidCapability 1;
-            vtop \<leftarrow> returnOk (vaddr + (1 << (page_bits_for_size pgsz)) - 1);
+            vtop \<leftarrow> returnOk (vaddr + (1 << (pageBitsForSize pgsz)) - 1);
             whenE (vtop \<ge> kernel_base) $ throwError $ InvalidArgument 0;
             vm_rights \<leftarrow> returnOk (mask_vm_rights R (data_to_rights rights_mask));
             check_vp_alignment pgsz vaddr;
@@ -168,21 +166,20 @@ where
                  end = args ! 1
         in doE
             (asid, vaddr) \<leftarrow> (case mapped_address of
-                Some a \<Rightarrow> returnOk a
+                Some (MappedMem asid, vaddr) \<Rightarrow> returnOk (asid, vaddr)
               | _ \<Rightarrow> throwError IllegalOperation);
-            pd \<leftarrow> lookup_error_on_failure False $ find_pd_for_asid asid;
+            pt \<leftarrow> lookup_error_on_failure False $ find_pt_for_asid asid;
             whenE (end \<le> start) $ throwError $ InvalidArgument 1;
             page_size \<leftarrow> returnOk $ 1 << pageBitsForSize pgsz;
             whenE (start \<ge> page_size \<or> end > page_size) $ throwError $ InvalidArgument 0;
             returnOk $ InvokePage $ PageFlush
                 (label_to_flush_type (invocation_type label)) (start + vaddr)
-                (end + vaddr - 1) (addrFromPPtr p + start) pd asid
+                (end + vaddr - 1) (addrFromPPtr p + start) pt asid
     odE
     else throwError TruncatedMessage
     else if invocation_type label = ArchInvocationLabel ARMPageGetAddress
     then returnOk $ InvokePage $ PageGetAddr p
   else  throwError IllegalOperation
-
 | ASIDControlCap \<Rightarrow>
     if invocation_type label = ArchInvocationLabel ARMASIDControlMakePool then
     if length args > 1 \<and> length extra_caps > 1
@@ -210,14 +207,10 @@ where
         odE
     else  throwError TruncatedMessage
     else  throwError IllegalOperation
-
 | ASIDPoolCap p base \<Rightarrow>
   if invocation_type label = ArchInvocationLabel ARMASIDPoolAssign then
   if length extra_caps > 0
   then
-    if invocation_type label = ARMASIDPoolAssign then
-    if length extra_caps > 0
-    then
     let (pt_cap, pt_cap_slot) = extra_caps ! 0
      in case pt_cap of
           ArchObjectCap (PageTableCap PT_L1 _ None) \<Rightarrow> doE
@@ -233,12 +226,12 @@ where
             returnOk $ InvokeASIDPool $ Assign (ucast offset + base) p pt_cap_slot
           odE
         | _ \<Rightarrow>  throwError $ InvalidCapability 1
-    else  throwError TruncatedMessage
-    else  throwError IllegalOperation
+  else  throwError TruncatedMessage
+  else  throwError IllegalOperation
 | VCPUCap vcpu_ref \<Rightarrow>
-    if invocation_type label = ARMVCPUDissociate then
+    if invocation_type label = ArchInvocationLabel ARMVCPUDissociate then
       returnOk $ InvokeVCPU $ VCPUDissociate vcpu_ref
-    else if invocation_type label = ARMVCPUAssociate then
+    else if invocation_type label = ArchInvocationLabel ARMVCPUAssociate then
       if length extra_caps > 0 then
       let (tcb_cap, _) = extra_caps ! 0 in
       case tcb_cap of
@@ -251,14 +244,14 @@ where
         odE
       | _ \<Rightarrow> throwError $ InvalidCapability 1
       else throwError TruncatedMessage
-    else if invocation_type label = ARMVCPUReadRegister then
+    else if invocation_type label = ArchInvocationLabel ARMVCPUReadRegister then
     case args of
       reg # _ \<Rightarrow> doE
         whenE (reg > max_hyper_reg) $ throwError $ RangeError 0 max_hyper_reg;
         returnOk $ InvokeVCPU $ VCPUReadRegister vcpu_ref (toEnum (unat reg))
       odE
     | _ \<Rightarrow> throwError TruncatedMessage
-    else if invocation_type label = ARMVCPUWriteRegister then
+    else if invocation_type label = ArchInvocationLabel ARMVCPUWriteRegister then
     case args of
       reg # val # _ \<Rightarrow> doE
         whenE (reg > max_hyper_reg) $ throwError $ RangeError 0 max_hyper_reg;
@@ -267,7 +260,7 @@ where
     | _ \<Rightarrow> throwError TruncatedMessage
     else throwError IllegalOperation
 | IOSpaceCap (Some dev) \<Rightarrow> 
-    if invocation_type label = ARMIOSpaceMap then
+    if invocation_type label = ArchInvocationLabel ARMIOSpaceMap then
       if length extra_caps > 0 then
       let (pt_cap, pt_slot) = extra_caps ! 0 in
         case pt_cap of
@@ -278,11 +271,10 @@ where
           odE
         | _ \<Rightarrow> throwError $ InvalidCapability 1
       else throwError TruncatedMessage
-    else if invocation_type label = ARMIOSpaceUnmap then
+    else if invocation_type label = ArchInvocationLabel ARMIOSpaceUnmap then
       returnOk $ InvokeIOSpace $ IOSpaceUnmap dev
     else throwError IllegalOperation
 | IOSpaceCap _ \<Rightarrow> throwError IllegalOperation"
-
 
 text "ARM does not support additional interrupt control operations"
 definition

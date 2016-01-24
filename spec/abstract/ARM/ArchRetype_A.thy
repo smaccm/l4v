@@ -50,10 +50,10 @@ where
   | ArchObject ARM_1G_BlockObj \<Rightarrow> create_word_objects ptr num_objects 30
   | ArchObject (PageTableObj PT_L1) \<Rightarrow> do
       mapM_x copy_global_mappings refs;
-      do_machine_op $ mapM_x (\<lambda>x. cleanCacheRange_PoU x (x + ((1::word32) << pt_bits) - 1) (addrFromPPtr x)) refs
-  | ArchObject (PageTableObj _) \<Rightarrow>
-      do_machine_op $ mapM_x (\<lambda>x. cleanCacheRange_PoU x (x + ((1::word32) << pt_bits) - 1) (addrFromPPtr x)) refs
+      do_machine_op $ mapM_x (\<lambda>x. cleanCacheRange_PoU x (x + ((1::word32) << ptBits) - 1) (addrFromPPtr x)) refs
     od
+  | ArchObject (PageTableObj _) \<Rightarrow>
+      do_machine_op $ mapM_x (\<lambda>x. cleanCacheRange_PoU x (x + ((1::word32) << ptBits) - 1) (addrFromPPtr x)) refs
   | _ \<Rightarrow> return ()"
 (* FIXME ARMHYP: the two PageTableObj init cases can be folded by using an if l = PT_L1 *)
 

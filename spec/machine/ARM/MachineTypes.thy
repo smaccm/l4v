@@ -18,7 +18,7 @@ imports
   Platform
 begin
 
-(* !!! Generated File !!! Skeleton in ../haskell-translator/ARMMachineTypes.thy *)
+(* !!! Generated File !!! Skeleton in spec/design/m-skel/ARM/MachineTypes.thy *)
 
 text {*
   An implementation of the machine's types, defining register set 
@@ -246,11 +246,15 @@ abbreviation (input)
 where
   "HardwareASID_ \<lparr> fromHWASID= v0 \<rparr> == HardwareASID v0"
 
+datatype pt_level =
+    PT_L1
+  | PT_L2
+  | PT_L3
+
 datatype vmpage_size =
-    ARMSmallPage
-  | ARMLargePage
-  | ARMSection
-  | ARMSuperSection
+    ARM_1G_Block
+  | ARM_2M_Block
+  | ARM_4K_Page
 
 datatype vmfault_type =
     ARMDataAbort
@@ -264,12 +268,58 @@ where
 definition
 pageBitsForSize :: "vmpage_size \<Rightarrow> nat"
 where
-"pageBitsForSize x0\<equiv> (case x0 of
-    ARMSmallPage \<Rightarrow>    12
-  | ARMLargePage \<Rightarrow>    16
-  | ARMSection \<Rightarrow>    20
-  | ARMSuperSection \<Rightarrow>    24
+"pageBitsForSize x0\<equiv> (let sz = x0 in
+  case sz of
+  ARM_1G_Block =>   30
+  | ARM_2M_Block =>   21
+  | ARM_4K_Page =>   12
   )"
+
+definition
+ptBits :: "nat"
+where
+"ptBits \<equiv> 12"
+
+(* pt_level instance proofs *)
+(*<*)
+instantiation pt_level :: enum begin
+definition
+  enum_pt_level: "enum_class.enum \<equiv> 
+    [ 
+      PT_L1,
+      PT_L2,
+      PT_L3
+    ]"
+
+
+definition
+  "enum_class.enum_all (P :: pt_level \<Rightarrow> bool) \<longleftrightarrow> Ball UNIV P"
+
+definition
+  "enum_class.enum_ex (P :: pt_level \<Rightarrow> bool) \<longleftrightarrow> Bex UNIV P"
+
+  instance
+  apply intro_classes
+   apply (safe, simp)
+   apply (case_tac x)
+  apply (simp_all add: enum_pt_level enum_all_pt_level_def enum_ex_pt_level_def)
+  by fast+
+end
+
+instantiation pt_level :: enum_alt
+begin
+definition
+  enum_alt_pt_level: "enum_alt \<equiv> 
+    alt_from_ord (enum :: pt_level list)"
+instance ..
+end
+
+instantiation pt_level :: enumeration_both
+begin
+instance by (intro_classes, simp add: enum_alt_pt_level)
+end
+
+(*>*)
 
 (* vmpage_size instance proofs *)
 (*<*)
@@ -277,10 +327,9 @@ instantiation vmpage_size :: enum begin
 definition
   enum_vmpage_size: "enum_class.enum \<equiv> 
     [ 
-      ARMSmallPage,
-      ARMLargePage,
-      ARMSection,
-      ARMSuperSection
+      ARM_1G_Block,
+      ARM_2M_Block,
+      ARM_4K_Page
     ]"
 
 
