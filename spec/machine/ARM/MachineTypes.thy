@@ -259,6 +259,11 @@ datatype vmpage_size =
 datatype vmfault_type =
     ARMDataAbort
   | ARMPrefetchAbort
+  | ARMVCPUFault machine_word(*hsr FIXME ARMHYP: do we care about hsr in abstract? also, hsr gets
+      passed in from the asm code in the exception handler, there's no way to get to it after,
+      hence the type has a parameter which would otherwise be silly *)
+  | ARMVGICMaintenanceFault (* fault used to notify threads of VGICMaintenance interrupt *)
+      (* FIXME ARMHYP: decide on abstract parameters for VGICM* *)
 
 definition
 pageBits :: "nat"

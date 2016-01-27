@@ -139,15 +139,6 @@ section "Threads"
 
 text {* The definitions in this section decode invocations on TCBs. *}
 
-text {* This definition checks whether the first argument is between the second and third. *}
-
-definition
-  range_check :: "machine_word \<Rightarrow> machine_word \<Rightarrow> machine_word \<Rightarrow> (unit,'z::state_ext) se_monad"
-where
-  "range_check v min_v max_v \<equiv>
-    unlessE (v \<ge> min_v \<and> v \<le> max_v) $
-        throwError $ RangeError min_v max_v"
-
 definition
   decode_read_registers :: "data list \<Rightarrow> cap \<Rightarrow> (tcb_invocation,'z::state_ext) se_monad"
 where

@@ -218,8 +218,15 @@ text {* VCPU objects can be associated with and dissociated from TCBs. *}
 definition
 perform_vcpu_invocation :: "vcpu_invocation \<Rightarrow> (machine_word list,'z::state_ext) s_monad" where
 "perform_vcpu_invocation iv \<equiv> case iv of
-    VCPUDissociate vcpu \<Rightarrow> do dissociate_vcpu vcpu; return [] od
-  | VCPUAssociate vcpu tcb \<Rightarrow> do associate vcpu tcb; return [] od
+    VCPUSetTCB vcpu tcb \<Rightarrow> do associate vcpu tcb; return [] od
+  | VCPUInjectIRQ vcpu index group prio irq \<Rightarrow> do
+      vgic_lr \<leftarrow> return $ ((ucast group :: machine_word) << 30) || (ucast prio << 23) || ucast irq
+        || (1 << 28)(*FIXME VGIC_IRQ_PENDING*) || (1 << 19)(*FIXME VGIC_LR_EOIIRQEN*);
+      (* FIXME ARMHYP: vcpu->vgic.lr[index] = vgic_lr *)
+      tcb \<leftarrow> gets cur_thread;
+      set_thread_state tcb Restart;
+      return []
+    od
   | VCPUReadRegister vcpu reg \<Rightarrow> do val \<leftarrow> vcpu_read_register vcpu reg; return [val] od
   | VCPUWriteRegister vcpu reg val \<Rightarrow> do vcpu_write_register vcpu reg val; return [] od"
 

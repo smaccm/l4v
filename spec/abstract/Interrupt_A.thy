@@ -97,6 +97,11 @@ definition
       do_extended_op timer_tick;
       do_machine_op resetTimer
     od
+  | IRQVGICMaintenance \<Rightarrow> do
+      (* FIXME ARMHYP: generate a fault for the current thread; there are a few fiddly registers here *)
+      thread \<leftarrow> gets cur_thread;
+      handle_vm_fault thread ARMVGICMaintenanceFault <catch> handle_fault thread
+    od
   | IRQInactive \<Rightarrow> fail (* not meant to be able to get IRQs from inactive lines *);
   do_machine_op $ ackInterrupt irq
   od"

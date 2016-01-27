@@ -63,8 +63,9 @@ datatype page_invocation
          (page_get_paddr: obj_ref)
 
 datatype vcpu_invocation =
-       VCPUAssociate obj_ref obj_ref
-     | VCPUDissociate obj_ref
+       VCPUSetTCB obj_ref (*vcpu*) obj_ref (*tcb*)
+       (*FIXME ARMHYP: canonise canonical types for VCPUInjectIRQ *)
+     | VCPUInjectIRQ obj_ref "8 word"(*index*) "8 word"(*group*) "8 word"(*priority*) "16 word"(*virq*)
      | VCPUReadRegister obj_ref hyper_reg
      | VCPUWriteRegister obj_ref hyper_reg machine_word
 

@@ -122,6 +122,31 @@ instance hyper_reg :: enum by (rule hyper_reg_enum_class)
 
 type_synonym hyper_reg_context = "hyper_reg \<Rightarrow> 32 word"
 
+(* FIXME ARMHYP: C code has these. Do we want to model these, or just have DONT_TRANSLATE on
+accessor functions that get to these? In particular vgic.lr manages virtual IRQs; do we ever want
+to prove anything about those?
+
+struct cpXRegs {
+    uint32_t sctlr;
+    uint32_t actlr;
+};
+
+struct gicVCpuIface {
+    uint32_t hcr;
+    uint32_t vmcr;
+    uint32_t apr;
+    uint32_t lr[64];
+};
+
+struct vcpu {
+    /* TCB associated with this VCPU. */
+    struct tcb *tcb;
+    struct cpXRegs cpx;
+    struct gicVCpuIface vgic;
+};
+
+*)
+
 text {*
   ASID pools translate 10 bits, VCPUs store a potential association to a TCB as well as 
   an extended register context. Page tables have 512 entries (cf B3.6.5, pg 1348). For data pages,
@@ -140,7 +165,7 @@ where
 | "arch_obj_size ASIDControlCap = 0"
 | "arch_obj_size (PageCap _ _ sz _) = pageBitsForSize sz"
 | "arch_obj_size (PageTableCap _ _ _) = 12"
-| "arch_obj_size (VCPUCap _) = 11"
+| "arch_obj_size (VCPUCap _) = 12"
 | "arch_obj_size (IOSpaceCap _) = 0"
 
 primrec
@@ -148,7 +173,7 @@ primrec
 where
   "arch_kobj_size (ASIDPool _) = pageBits"
 | "arch_kobj_size (PageTable _) = ptBits"
-| "arch_kobj_size (VCPU _ _) = 11"
+| "arch_kobj_size (VCPU _ _) = 12"
 | "arch_kobj_size (DataPage sz) = pageBitsForSize sz"
 (* FIXME ARMHYP: vcpu_bits? *)
 

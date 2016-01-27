@@ -38,6 +38,9 @@ datatype fault
          | VMFault data "data list"
          | UnknownSyscallException data
          | UserException data data
+         (* FIXME ARMHYP are these truly arch-independant, or just in the current C version *)
+         | VGICMaintenance data (* idx *) data (* idxValid *)
+         | VCPUFault data (* hsr *) (* FIXME ARMHYP: this is a 64-bit struct, 2x data? *)
 
 datatype syscall_error
          = InvalidArgument nat

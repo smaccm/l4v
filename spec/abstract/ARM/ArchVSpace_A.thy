@@ -157,6 +157,11 @@ odE"
     fault \<leftarrow> liftE $ do_machine_op getIFSR;
     throwError $ VMFault pc [1, fault && mask 14]
 odE"
+|
+"handle_vm_fault thread (ARMVCPUFault hsr) = (throwError $ VCPUFault hsr)"
+|
+"handle_vm_fault thread (ARMVGICMaintenanceFault) =
+  (throwError $ VGICMaintenance undefined undefined)" (* FIXME ARMHYP: abstract VGIC params *)
 
 text {* Load the optional hardware ASID currently associated with this virtual
 ASID. *}
@@ -611,7 +616,10 @@ definition
   associate :: "obj_ref \<Rightarrow> obj_ref \<Rightarrow> (unit,'z::state_ext) s_monad"
 where
   "associate vcpu_ref tcb_ref \<equiv> do
-    (_,r) \<leftarrow> get_vcpu vcpu_ref;
+    vcpu_opt \<leftarrow> thread_get tcb_vcpu tcb_ref;
+    when (vcpu_opt \<noteq> None) (dissociate_tcb tcb_ref);
+    (old_tcb,r) \<leftarrow> get_vcpu vcpu_ref;
+    when (old_tcb \<noteq> None) (dissociate_tcb tcb_ref);
     set_vcpu vcpu_ref (Some tcb_ref, r);
     thread_set (tcb_vcpu_update $ K $ Some vcpu_ref) tcb_ref
   od"
@@ -700,7 +708,7 @@ where
       return cap
     od
   | IOSpaceCap dev_opt \<Rightarrow> return cap
-  | VCPUCap vcpu_ref \<Rightarrow> return cap"
+  | VCPUCap vcpu_ref \<Rightarrow> return cap" (* FIXME ARMHYP: when do we dissociate? *)
 
 text {* A thread's virtual address space capability must be to a level 1 page table. *}
 definition

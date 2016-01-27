@@ -35,8 +35,8 @@ datatype arch_invocation_label =
   | ARMPageGetAddress
   | ARMASIDControlMakePool
   | ARMASIDPoolAssign
-  | ARMVCPUDissociate
-  | ARMVCPUAssociate
+  | ARMVCPUSetTCB
+  | ARMVCPUInjectIRQ
   | ARMVCPUReadRegister
   | ARMVCPUWriteRegister
   | ARMIOSpaceMap
@@ -64,8 +64,8 @@ definition
       ARMPageGetAddress,
       ARMASIDControlMakePool,
       ARMASIDPoolAssign,
-      ARMVCPUDissociate,
-      ARMVCPUAssociate,
+      ARMVCPUSetTCB,
+      ARMVCPUInjectIRQ,
       ARMVCPUReadRegister,
       ARMVCPUWriteRegister,
       ARMIOSpaceMap,

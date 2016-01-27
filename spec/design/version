@@ -1,9 +1,8 @@
 Built from git repo at /home/x/repos/arm-hyp/seL4/haskell by x
 
 Generated from changeset:
-3238a2f Merge commit 'e11bb32f7858a23403929cf3a5be04ab75a2991f' into arch_split
+a8ae44b arm-hyp: adjust hardware spec to get abstract to work
 
 
 Warning - uncomitted changes used:
  M src/SEL4/API/InvocationLabels/ARM.lhs
- M src/SEL4/Machine/Hardware/ARM.lhs

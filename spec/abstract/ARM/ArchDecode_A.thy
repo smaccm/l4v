@@ -62,6 +62,7 @@ where
 definition max_hyper_reg :: machine_word where
   "max_hyper_reg \<equiv> of_nat (fromEnum (maxBound::hyper_reg))"
 
+(* FIXME ARMHYP break this up and refactor *)
 definition
   arch_decode_invocation :: 
   "data \<Rightarrow> data list \<Rightarrow> cap_ref \<Rightarrow> cslot_ptr \<Rightarrow> arch_cap \<Rightarrow> (cap \<times> cslot_ptr) list \<Rightarrow> 
@@ -229,21 +230,36 @@ where
   else  throwError TruncatedMessage
   else  throwError IllegalOperation
 | VCPUCap vcpu_ref \<Rightarrow>
-    if invocation_type label = ArchInvocationLabel ARMVCPUDissociate then
-      returnOk $ InvokeVCPU $ VCPUDissociate vcpu_ref
-    else if invocation_type label = ArchInvocationLabel ARMVCPUAssociate then
+    if invocation_type label = ArchInvocationLabel ARMVCPUSetTCB then
       if length extra_caps > 0 then
       let (tcb_cap, _) = extra_caps ! 0 in
       case tcb_cap of
         ThreadCap tcb_ref \<Rightarrow> doE
+          (* FIXME ARMHYP: unnecessary check now that associate/dissociate are unified? *)
           (tcb_opt, _) \<leftarrow> liftE $ get_vcpu vcpu_ref;
           whenE (tcb_opt \<noteq> None) $ throwError DeleteFirst;
           vcpu_opt \<leftarrow> liftE $ thread_get tcb_vcpu tcb_ref;
           whenE (vcpu_opt \<noteq> None) $ throwError DeleteFirst;
-          returnOk $ InvokeVCPU $ VCPUAssociate vcpu_ref tcb_ref
+          returnOk $ InvokeVCPU $ VCPUSetTCB vcpu_ref tcb_ref
         odE
       | _ \<Rightarrow> throwError $ InvalidCapability 1
       else throwError TruncatedMessage
+    else if invocation_type label = ArchInvocationLabel ARMVCPUInjectIRQ then
+      case args of
+        mr0 # mr1 # _ \<Rightarrow> doE
+          vid \<leftarrow> returnOk $ mr0 && 0xffff;
+          priority \<leftarrow> returnOk $ (mr0 >> 16) && 0xff;
+          group \<leftarrow> returnOk $ (mr0 >> 24) && 0xff;
+          index \<leftarrow> returnOk $ mr1 && 0xff;
+          range_check vid 0 (1 << 10 - 1);
+          range_check priority 0 31;
+          range_check group 0 1;
+          (* FIXME ARMHYP: range_check index 0 (VGIC_VTR_NLISTREGS(gic_vcpu_ctrl->vtr) - 1); *)
+          (* FIXME ARMHYP: (vcpu->vgic.lr[index] & VGIC_IRQ_MASK) == VGIC_IRQ_ACTIVE) \<Rightarrow> DeleteFirst; *)
+          (* FIXME ARMHYP: ucast much?! *)
+          returnOk $ InvokeVCPU $ VCPUInjectIRQ vcpu_ref (ucast index) (ucast group) (ucast priority) (ucast vid)
+        odE
+      | _ \<Rightarrow> throwError TruncatedMessage
     else if invocation_type label = ArchInvocationLabel ARMVCPUReadRegister then
     case args of
       reg # _ \<Rightarrow> doE

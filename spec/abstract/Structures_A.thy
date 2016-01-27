@@ -452,7 +452,8 @@ type_synonym cdt = "cslot_ptr \<Rightarrow> cslot_ptr option"
 datatype irq_state =
    IRQInactive
  | IRQSignal
- | IRQTimer
+ | IRQTimer (* reserved irq *)
+ | IRQVGICMaintenance (* reserved irq *)
 
 text {* The kernel state includes a heap, a capability derivation tree
 (CDT), a bitmap used to determine if a capability is the original
