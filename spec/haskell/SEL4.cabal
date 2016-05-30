@@ -21,6 +21,14 @@ Flag FFI
     description:        Include the C language bindings
     default:            True
 
+Flag ArchArm
+    description:        Include ARM modules and platforms
+    default:            False
+
+Flag ArchArmHyp
+    description:        Include ARM (with Hypervisor Extensions) modules and platforms
+    default:            False
+
 Library
     exposed-modules:        SEL4
                             SEL4.Machine.Target
@@ -36,6 +44,9 @@ Library
         include-dirs:       include
         install-includes:   sel4model.h gic.h
                             dist/build/Simulation/FFIBindings_stub.h
+        other-modules:      SEL4.Machine.Hardware.GICInterface
+                            SEL4.Machine.Hardware.MCTInterface
+                            SEL4.Machine.Hardware.MPTimerInterface
 
     other-modules:          SEL4.API
                             SEL4.API.Syscall
@@ -75,13 +86,12 @@ Library
                             Data.BinaryTree
                             Data.Helpers
 
+    if flag(ArchArm)
+        other-modules:
                             SEL4.Machine.Hardware.ARM.KZM
                             SEL4.Machine.Hardware.ARM.Exynos4210
                             SEL4.Machine.Hardware.ARM.Sabre
                             SEL4.Machine.Hardware.ARM.Callbacks
-                            SEL4.Machine.Hardware.GICInterface
-                            SEL4.Machine.Hardware.MCTInterface
-                            SEL4.Machine.Hardware.MPTimerInterface
 
                             SEL4.API.Types.ARM
                             SEL4.API.InvocationLabels.ARM
@@ -96,7 +106,28 @@ Library
                             SEL4.Model.StateData.ARM
                             SEL4.Machine.RegisterSet.ARM
                             SEL4.Machine.Hardware.ARM
-                           
+
+    -- FIXME ideally ARMHYP will share code with the main ARM development,
+    -- but when doing an architecture port we want to make sure we are doing a
+    -- full pass over the Haskell kernel, touching all files
+    -- TODO consolidate later
+    if flag(ArchArmHyp)
+        other-modules:
+                            SEL4.Machine.Hardware.ARM.TK1
+
+                            SEL4.API.Types.ARM_HYP
+                            SEL4.API.InvocationLabels.ARM_HYP
+                            SEL4.API.Invocation.ARM_HYP
+                            SEL4.Kernel.VSpace.ARM_HYP
+                            SEL4.Kernel.Thread.ARM_HYP
+                            SEL4.Object.ObjectType.ARM_HYP
+                            SEL4.Object.Structures.ARM_HYP
+                            SEL4.Object.Interrupt.ARM_HYP
+                            SEL4.Object.Instances.ARM_HYP
+                            SEL4.Object.TCB.ARM_HYP
+                            SEL4.Model.StateData.ARM_HYP
+                            SEL4.Machine.RegisterSet.ARM_HYP
+                            SEL4.Machine.Hardware.ARM_HYP
 
     hs-source-dirs:         src
     ghc-prof-options:       -auto-all -prof -fprof-auto
