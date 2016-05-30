@@ -2,12 +2,21 @@
 
 doc/refman.pdf
 doc/version.txt
+doc/functions.aux
+doc/*.aux
+doc/*.bbl
+doc/*.blg
+doc/*.log
+doc/*.out
+doc/*.toc
 
 doc/figures/clientkernel.pdf
 doc/figures/clientserver.pdf
 doc/figures/derive.pdf
 doc/figures/ipctransfer.pdf
 doc/figures/truncation.pdf
+doc/figures/*.log
+doc/figures/*.mpx
 
 # generated build files
 
@@ -18,3 +27,4 @@ dist
 
 .cabal-sandbox/
 cabal.sandbox.config
+
