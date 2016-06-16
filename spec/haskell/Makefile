@@ -8,7 +8,6 @@
 # @TAG(GD_GPL)
 #
 
-
 BOOT_MODULES = Kernel/CSpace Kernel/Thread Kernel/FaultHandler \
     Kernel/VSpace Kernel/Init Model/PSpace Object/TCB Object/CNode \
     Object/ObjectType Object/Endpoint Object/Interrupt
@@ -26,7 +25,6 @@ CABAL=stack exec -- ./stack-path cabal
 #all: build pdf FIXME original
 all: build-arm-hyp
 
-<<<<<<< HEAD
 build: .stack-work $(BOOT_FILES)
 	$(CABAL) sandbox init
 	$(CABAL) install --dependencies-only
@@ -68,4 +66,4 @@ clean:
 realclean:
 	rm -rf $(BOOT_FILES) dist .stack-work .cabal-sandbox cabal.sandbox.config
 
-.PHONY: all build pdf clean realclean
+.PHONY: all build build-arm-hyp pdf clean realclean
