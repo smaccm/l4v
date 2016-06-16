@@ -10,7 +10,7 @@
 
 {-# LANGUAGE EmptyDataDecls, ForeignFunctionInterface, GeneralizedNewtypeDeriving #-}
 
-module SEL4.Machine.Hardware.ARM.KZM where
+module SEL4.Machine.Hardware.ARM.TK1 where -- FIXME this is just a copy of KZM
 
 import SEL4.Machine.RegisterSet
 import Foreign.Ptr

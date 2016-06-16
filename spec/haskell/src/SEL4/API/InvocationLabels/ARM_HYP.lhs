@@ -14,11 +14,11 @@ This module defines the machine-specific invocations for the ARM.
 
 This module makes use of the GHC extension allowing data types with no constructors.
 
-> {-# LANGUAGE EmptyDataDecls #-}
+> {-# LANGUAGE CPP, EmptyDataDecls #-}
 
 \end{impdetails}
 
-> module SEL4.API.InvocationLabels.ARM where
+> module SEL4.API.InvocationLabels.ARM_HYP where
 
 \subsection{ARM-Specific Invocation Labels}
 
@@ -29,9 +29,16 @@ This module makes use of the GHC extension allowing data types with no construct
 >         | ARMPDUnify_Instruction
 >         | ARMPageTableMap
 >         | ARMPageTableUnmap
+#ifdef CONFIG_ARM_SMMU
+>         | ARMIOPageTableMap
+>         | ARMIOPageTableUnmap
+#endif
 >         | ARMPageMap
 >         | ARMPageRemap
 >         | ARMPageUnmap
+#ifdef CONFIG_ARM_SMMU
+>         | ARMPageMapIO
+#endif
 >         | ARMPageClean_Data
 >         | ARMPageInvalidate_Data
 >         | ARMPageCleanInvalidate_Data
@@ -39,6 +46,11 @@ This module makes use of the GHC extension allowing data types with no construct
 >         | ARMPageGetAddress
 >         | ARMASIDControlMakePool
 >         | ARMASIDPoolAssign
+#ifdef CONFIG_ARM_HYPERVISOR_SUPPORT
+>         | ARMVCPUSetTCB
+>         | ARMVCPUInjectIRQ
+>         | ARMVCPUReadReg
+>         | ARMVCPUWriteReg
+#endif
 >         deriving (Eq, Enum, Bounded, Show)
-
 

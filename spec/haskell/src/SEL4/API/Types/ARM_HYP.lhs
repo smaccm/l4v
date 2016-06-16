@@ -8,14 +8,17 @@
 % @TAG(GD_GPL)
 %
 
-This module contains an instance of the machine-specific kernel API for the ARM architecture.
+This module contains an instance of the machine-specific kernel API for the ARM architecture with hypervisor extensions.
 
-> module SEL4.API.Types.ARM where
+> {-# LANGUAGE CPP #-}
+
+> module SEL4.API.Types.ARM_HYP where
 
 > import SEL4.API.Types.Universal(APIObjectType, apiGetObjectSize)
-> import SEL4.Machine.Hardware.ARM
+> import SEL4.Machine.Hardware.ARM_HYP
 
 There are three ARM-specific object types: virtual pages, page tables, and page directories.
+Hypervisor additions add VCPUs.
 
 > data ObjectType
 >     = APIObjectType APIObjectType
