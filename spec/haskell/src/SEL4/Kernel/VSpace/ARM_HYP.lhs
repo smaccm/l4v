@@ -10,17 +10,17 @@
 
 This module defines the handling of the ARM hardware-defined page tables.
 
-> module SEL4.Kernel.VSpace.ARM where
+> module SEL4.Kernel.VSpace.ARM_HYP where
 
 \begin{impdetails}
 
 > import SEL4.API.Types
 > import SEL4.API.Failures
 > import SEL4.Machine.RegisterSet
-> import SEL4.Machine.Hardware.ARM
+> import SEL4.Machine.Hardware.ARM_HYP
 > import SEL4.Model
 > import SEL4.Object.Structures
-> import SEL4.Model.StateData.ARM
+> import SEL4.Model.StateData.ARM_HYP
 > import SEL4.Object.Instances()
 > import SEL4.API.InvocationLabels
 > import SEL4.Kernel.BootInfo
@@ -39,8 +39,8 @@ This module defines the handling of the ARM hardware-defined page tables.
 
 The ARM-specific invocations are imported with the "ArchInv" prefix. This is necessary to avoid namespace conflicts with the generic invocations.
 
-> import SEL4.API.Invocation.ARM as ArchInv
-> import SEL4.API.InvocationLabels.ARM as ArchInv
+> import SEL4.API.Invocation.ARM_HYP as ArchInv
+> import SEL4.API.InvocationLabels.ARM_HYP as ArchInv
 
 \subsection{Constants}
 
@@ -55,6 +55,8 @@ The idle thread's code is at an arbitrary location in kernel memory. For conveni
 > idleThreadStart = globalsBase + VPtr 0x100
 
 The idle thread executes a short loop that drains the CPU's write buffer and then waits for an interrupt. Note that the wait for interrupt instruction always completes before the interrupt is delivered, so the interrupt handler will return to the following branch instruction.
+
+FIXME ARMHYP not checked
 
 > idleThreadCode :: [Word]
 > idleThreadCode =

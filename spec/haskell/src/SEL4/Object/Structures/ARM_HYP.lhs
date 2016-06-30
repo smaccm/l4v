@@ -14,18 +14,18 @@ This module contains the physical memory model's representations of the ARM-spec
 
 This module makes use of the GHC extension allowing declaration of types with no constructors, so GHC language extensions are enabled.
 
-> {-# LANGUAGE EmptyDataDecls, GeneralizedNewtypeDeriving #-}
+> {-# LANGUAGE CPP, EmptyDataDecls, GeneralizedNewtypeDeriving #-}
 
 \end{impdetails}
 
-> module SEL4.Object.Structures.ARM where
+> module SEL4.Object.Structures.ARM_HYP where
 
 \begin{impdetails}
 
 > import SEL4.Machine.RegisterSet
-> import SEL4.Machine.Hardware.ARM
+> import SEL4.Machine.Hardware.ARM_HYP
 > import Data.Array
-> import Data.Word(Word32)
+> import Data.Word(Word32,Word16)
 > import Data.Bits
 
 \end{impdetails}
@@ -50,11 +50,28 @@ There are six ARM-specific capability types: the global ASID control capability,
 >     | PageDirectoryCap {
 >         capPDBasePtr :: PPtr PDE,
 >         capPDMappedASID :: Maybe ASID }
+#ifdef CONFIG_ARM_HYPERVISOR_SUPPORT
+>     | VCPUCap {
+>         capVCPUPtr :: VCPU }
+#endif
+#ifdef CONFIG_ARM_SMMU
+>     | IOSpaceCap {
+>         capIOSpaceModuleID :: Word16,
+>         capIOSpaceClientID :: Word16 }
+>     | IOPageDirectoryCap {
+>         capIOPDBasePtr :: PPtr IOPDE,
+>         capIOPDMappedAddress :: Maybe (ASID) } -- FIXME ARMHYP where is mapped address?
+>     | IOPageTableCap {
+>         capIOPTBasePtr :: PPtr IOPTE,
+>         capIOPTMappedAddress :: Maybe (ASID, VPtr) } -- FIXME ARMHYP Vptr or PPtr?
+#endif
 >     deriving (Eq, Show)
 
 \subsection{Kernel Objects}
 
 The ARM kernel stores one ARM-specific type of object in the PSpace: ASID pools, which are second level nodes in the global ASID table. 
+
+FIXME ARMHYP how does the above comment possibly relate to the ArchKernelObject datatype?
 
 > data ArchKernelObject
 >     = KOASIDPool ASIDPool
@@ -62,11 +79,18 @@ The ARM kernel stores one ARM-specific type of object in the PSpace: ASID pools,
 >     | KOPDE PDE
 >     deriving Show
 
+FIXME ARMHYP add IOPTE and IOPDE to ArchKernelObject?
+
 > archObjSize ::  ArchKernelObject -> Int
-> archObjSize a = case a of 
+> archObjSize a = case a of
 >                 KOASIDPool _ -> pageBits
->                 KOPTE _ -> 2 
+#ifndef CONFIG_ARM_HYPERVISOR_SUPPORT
+>                 KOPTE _ -> 2
 >                 KOPDE _ -> 2
+#else
+>                 KOPTE _ -> 3
+>                 KOPDE _ -> 3
+#endif
 
 \subsection{ASID Pools}
 
@@ -82,6 +106,8 @@ An ASID is an unsigned word. Note that it is a \emph{virtual} address space iden
 
 ASIDs are mapped to address space roots by a global two-level table. The actual ASID values are opaque to the user, as are the sizes of the levels of the tables; ASID allocation calls will simply return an error once the available ASIDs are exhausted.
 
+FIXME ARMHYP unclear if bit manipulation still correct
+
 > asidHighBits :: Int
 > asidHighBits = 8
 
@@ -96,5 +122,4 @@ ASIDs are mapped to address space roots by a global two-level table. The actual 
 
 > asidHighBitsOf :: ASID -> ASID
 > asidHighBitsOf asid = (asid `shiftR` asidLowBits) .&. mask asidHighBits
-
 

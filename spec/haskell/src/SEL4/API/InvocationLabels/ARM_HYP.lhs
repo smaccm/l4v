@@ -22,11 +22,20 @@ This module makes use of the GHC extension allowing data types with no construct
 
 \subsection{ARM-Specific Invocation Labels}
 
+FIXME ARMHYP remind me why IO page tables do not have remap
+FIXME ARMHYP ARMPageMapIO is an inconsistant name (but coined by kernel team)
+
 > data ArchInvocationLabel
 >         = ARMPDClean_Data
 >         | ARMPDInvalidate_Data
 >         | ARMPDCleanInvalidate_Data
 >         | ARMPDUnify_Instruction
+#ifdef CONFIG_ARM_HYPERVISOR_SUPPORT
+>         | ARMVCPUSetTCB
+>         | ARMVCPUInjectIRQ
+>         | ARMVCPUReadReg
+>         | ARMVCPUWriteReg
+#endif
 >         | ARMPageTableMap
 >         | ARMPageTableUnmap
 #ifdef CONFIG_ARM_SMMU
@@ -46,11 +55,5 @@ This module makes use of the GHC extension allowing data types with no construct
 >         | ARMPageGetAddress
 >         | ARMASIDControlMakePool
 >         | ARMASIDPoolAssign
-#ifdef CONFIG_ARM_HYPERVISOR_SUPPORT
->         | ARMVCPUSetTCB
->         | ARMVCPUInjectIRQ
->         | ARMVCPUReadReg
->         | ARMVCPUWriteReg
-#endif
 >         deriving (Eq, Enum, Bounded, Show)
 

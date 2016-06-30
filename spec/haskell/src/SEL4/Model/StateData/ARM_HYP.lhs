@@ -10,14 +10,14 @@
 
 This module contains the architecture-specific kernel global data for the ARM architecture.
  
-> module SEL4.Model.StateData.ARM where
+> module SEL4.Model.StateData.ARM_HYP where
 
 \begin{impdetails}
 
 > import SEL4.Machine
-> import SEL4.Machine.Hardware.ARM
+> import SEL4.Machine.Hardware.ARM_HYP
 >     (HardwareASID(..), PTE(..), PDE(..), ptBits, pdBits)
-> import SEL4.Object.Structures.ARM
+> import SEL4.Object.Structures.ARM_HYP
 
 > import Data.Array
 > import Data.Bits
