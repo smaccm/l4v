@@ -244,6 +244,9 @@ FIXME ARMHYP this uses ARM\_HYP config option in C, in which case it calls setCu
 >     cbptr <- ask
 >     liftIO $ Platform.setHardwareASID cbptr hw_asid
 
+> writeContextIDAndPD :: HardwareASID -> PAddr -> MachineMonad ()
+> writeContextIDAndPD = error "FIXME ARMHYP  machine callback unimplemented"
+
 \subsubsection{Memory Barriers}
 
 > isb :: MachineMonad ()
@@ -432,10 +435,19 @@ implementation assumes the monitor is not modelled in our simulator.
 >     cbptr <- ask
 >     liftIO $ Platform.getDFSR cbptr
 
+> getHSR :: MachineMonad Word
+> getHSR = error "FIXME ARMHYP machine callback unimplemented"
+
 > getFAR :: MachineMonad VPtr
 > getFAR = do
 >     cbptr <- ask
 >     liftIO $ Platform.getFAR cbptr
+
+> getHDFAR :: MachineMonad VPtr
+> getHDFAR = error "FIXME ARMHYP machine callback unimplemented"
+
+> addressTranslateS1CPR :: VPtr -> MachineMonad VPtr
+> addressTranslateS1CPR = error "FIXME ARMHYP machine callback unimplemented"
 
 \subsubsection{Page Table Structure}
 
@@ -712,4 +724,7 @@ FIXME ARMHYP this is so very very verbose, but there is no way to know if we wil
 
 > kernelBase :: VPtr
 > kernelBase = Platform.kernelBase
+
+FIXME ARMHYP MOVE extra machine ops
+
 
