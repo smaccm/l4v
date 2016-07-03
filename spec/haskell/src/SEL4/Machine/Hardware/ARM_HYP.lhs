@@ -640,24 +640,24 @@ FIXME ARMHYP ask somebody what the most convenient refinement would be
 With hypervisor extensions enabled, page table and page directory entries occupy
 8 bytes. Page directories occupy four frames, and page tables occupy a frame.
 
-> ptSizeBits = (3 :: Int)
-> pdSizeBits = (3 :: Int)
-> pdBits = (11 :: Int) `shiftL` pdSizeBits
-> ptBits = (9 :: Int) `shiftL` ptSizeBits
+> pteBits = (3 :: Int)
+> pdeBits = (3 :: Int)
+> pdBits = (11 :: Int) + pdeBits
+> ptBits = (9 :: Int) + pteBits
 > vcpuBits = (pageBits :: Int)
 
 #else /* CONFIG_ARM_HYPERVISOR_SUPPORT */
 
 ARM page directories and page tables occupy four frames and one quarter of a frame, respectively.
 
-> ptSizeBits = (2 :: Int)
-> pdSizeBits = (2 :: Int)
-> pdBits = (12 :: Int) `shiftL` pdSizeBits
-> ptBits = (8 :: Int) `shiftL` ptSizeBits
+> pteBits = (2 :: Int)
+> pdeBits = (2 :: Int)
+> pdBits = (12 :: Int) `shiftL` pdeBits
+> ptBits = (8 :: Int) `shiftL` pteBits
 
 FIXME ARMHYP this is a bit silly: in the C code we have pdBits be 12 and ptBits 8,
 not the size of the whole thing. In fact, in the haskell we often have to shift pdBits right by the size of the PDE, which get by calling objBits on a new PDE...
-FIXME ARMHYP therefore pdSizeBits and ptSizeBits are not used outside of here
+FIXME ARMHYP therefore pdeBits and pteBits are not used much outside of here
 
 #endif /* CONFIG_ARM_HYPERVISOR_SUPPORT */
 

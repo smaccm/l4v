@@ -121,7 +121,6 @@ All other capabilities need no finalisation action.
 >       return $ resetMemMapping cap
 >
 > recycleCap is_final (cap@PageTableCap { capPTBasePtr = ptr }) = do
->     let pteBits = objBits InvalidPTE
 >     let slots = [ptr, ptr + bit pteBits .. ptr + bit ptBits - 1]
 >     mapM_ (flip storePTE InvalidPTE) slots
 >     doMachineOp $

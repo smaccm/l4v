@@ -34,6 +34,8 @@ This module makes use of the GHC extension allowing declaration of types with no
 
 There are six ARM-specific capability types: the global ASID control capability, ASID pools, page tables, page directories, and pages.
 
+FIXME ARMHYP frame caps in C have an isIOSpace property - add this here, or add a separate PageIOCap (IOPageCap?) that simply encodes / decodes to the right thing?
+
 > data ArchCapability
 >     = ASIDPoolCap {
 >         capASIDPool :: PPtr ASIDPool,
@@ -63,7 +65,7 @@ There are six ARM-specific capability types: the global ASID control capability,
 >         capIOPDMappedAddress :: Maybe (ASID) } -- FIXME ARMHYP where is mapped address?
 >     | IOPageTableCap {
 >         capIOPTBasePtr :: PPtr IOPTE,
->         capIOPTMappedAddress :: Maybe (ASID, VPtr) } -- FIXME ARMHYP Vptr or PPtr?
+>         capIOPTMappedAddress :: Maybe (ASID, VPtr) } -- FIXME ARMHYP Vptr or PAddr?
 #endif
 >     deriving (Eq, Show)
 

@@ -10,10 +10,18 @@
 
 This module defines the handling of the ARM hardware-defined page tables.
 
-FIXME ARMHYP this file is only for ARM\_HYP, does not use preprocessor unlike nearly all the other ones; fixable, but too much clutter for the moment
+FIXME ARMHYP this file is only for ARM\_HYP, uses preprocessor only to disable SMMU unlike nearly all the other ones; fixable, but too much clutter for the moment
 
 FIXME ARMHYP the amount of magic numbers is staggering
-FIXME ARMHYP 0, 4 .. 60 should be 0, 1 << ptSizeBits, 15 << ptSizeBits
+FIXME ARMHYP 0, 4 .. 60 should be 0, 1 << pteBits, 15 << pteBits
+
+\begin{impdetails}
+
+FIXME ARMHYP this is so that disabling SMMU results in successful compile
+
+> {-# LANGUAGE CPP #-}
+
+\end{impdetails}
 
 > module SEL4.Kernel.VSpace.ARM_HYP where
 
@@ -146,8 +154,7 @@ With hypervisor extensions, kernel and user MMUs are completely independent. How
 > copyGlobalMappings newPD = do
 >     globalPT <- gets (armUSGlobalPT . ksArchState)
 >     let pde = PageTablePDE (addrFromPPtr globalPT)
->     let pdeBits = objBits (undefined :: PDE)
->     let pdSize = 1 `shiftL` (pdBits - pdeBits)
+>     let pdSize = bit (pdBits - pdeBits)
 >     let offset = (pdSize - 1) `shiftL` pdeBits -- FIXME ARMHYP yuck
 >     storePDE (newPD + offset) pde
 
@@ -155,10 +162,10 @@ With hypervisor extensions, kernel and user MMUs are completely independent. How
 
 When a frame is being mapped, or an existing mapping updated, the following function is used to locate the page table or page directory slots that will be updated and to construct the entry that will be written into them.
 
-> largePagePTEOffsets = [0, PPtr pts .. PPtr (15 `shiftL` ptSizeBits)] :: [PPtr PTE]
->     where pts = fromIntegral ptSizeBits
-> superSectionPDEOffsets = [0, PPtr pds .. PPtr (15 `shiftL` ptSizeBits)] :: [PPtr PDE]
->     where pds = fromIntegral pdSizeBits
+> largePagePTEOffsets = [0, PPtr pts .. PPtr (15 `shiftL` pteBits)] :: [PPtr PTE]
+>     where pts = fromIntegral pteBits
+> superSectionPDEOffsets = [0, PPtr pds .. PPtr (15 `shiftL` pdeBits)] :: [PPtr PDE]
+>     where pds = fromIntegral pdeBits
 
 > createMappingEntries :: PAddr -> VPtr ->
 >     VMPageSize -> VMRights -> VMAttributes -> PPtr PDE ->
@@ -337,8 +344,8 @@ FIXME ARMHYP the normal ARM has magic numbers everywhere here! can't be certain 
 
 > lookupPTSlotFromPT :: PPtr PTE -> VPtr -> Kernel (PPtr PTE)
 > lookupPTSlotFromPT pt vptr = do
->     let ptIndex = fromVPtr $ vptr `shiftR` pageBits .&. mask (ptBits - ptSizeBits)
->     let ptSlot = pt + (PPtr $ ptIndex `shiftL` ptSizeBits)
+>     let ptIndex = fromVPtr $ vptr `shiftR` pageBits .&. mask (ptBits - pteBits)
+>     let ptSlot = pt + (PPtr $ ptIndex `shiftL` pteBits)
 >     checkPTAt pt
 >     return ptSlot
 
@@ -346,8 +353,8 @@ Similarly, "lookupPDSlot" locates a slot in the top-level page directory. Howeve
 
 > lookupPDSlot :: PPtr PDE -> VPtr -> PPtr PDE
 > lookupPDSlot pd vptr =
->     let pdIndex = fromVPtr $ vptr `shiftR` (pageBits + ptBits - ptSizeBits)
->     in pd + (PPtr $ pdIndex `shiftL` pdSizeBits)
+>     let pdIndex = fromVPtr $ vptr `shiftR` (pageBits + ptBits - pteBits)
+>     in pd + (PPtr $ pdIndex `shiftL` pdeBits)
 
 \subsubsection{Handling Faults}
 
@@ -371,6 +378,8 @@ Hypervisor mode requires extra translation here.
 >                 (VPtr pc .&. mask pageBits)
 >     fault <- withoutFailure $ doMachineOp getHSR
 >     throw $ VMFault (VPtr pc) [1, fault .&. 0x3ffffff] -- FIXME ARMHYP is mask right here?
+> handleVMFault _ (ARMVCPUFault _) = error "FIXME ARMHYP no way to add arch-specific non-VM faults yet, discuss with Adrian"
+> handleVMFault _ ARMVGICMaintenanceFault = error "FIXME ARMHYP no way to add arch-specific non-VM faults yet, discuss with Adrian"
 
 \subsection{Unmapping and Deletion}
 
@@ -778,7 +787,12 @@ XXX ARMHYP no changes in this subsection
 >                 SmallPagePTE frame _ _ _ -> return $ Just (ARMSmallPage, frame)
 >                 _ -> return Nothing
 >         _ -> return Nothing
->     
+
+FIXME ARMHYP implement after decision re PageCap contents and MOVE
+FIXME ARMHYP this is not a helpful name, but it's the same as C
+
+> isIOSpaceFrame (PageCap {}) = error "FIXME ARMHYP undecided on PageCap contents"
+> isIOSpaceFrame _ = error "FIXME ARMHYP undecided on PageCap contents"
 
 > decodeARMMMUInvocation :: Word -> [Word] -> CPtr -> PPtr CTE ->
 >         ArchCapability -> [(Capability, PPtr CTE)] ->
@@ -831,11 +845,9 @@ Capabilities for page tables --- that is, the second level of the hardware-defin
 
 Note that these capabilities cannot be copied until they have been mapped, so any given page table object can only appear in one page directory. This is to ensure that the page unmapping operation always succeeds.
 
-FIXME ARMHYP up to here
-
 > decodeARMMMUInvocation label args _ cte cap@(PageTableCap {}) extraCaps =
 >     case (invocationType label, args, extraCaps) of
->         (ArchInvocationLabel ARMPageTableMap, vaddr:_, (pdCap,_):_) -> do
+>         (ArchInvocationLabel ARMPageTableMap, vaddr:_attr:_, (pdCap,_):_) -> do
 >             when (isJust $ capPTMappedAddress cap) $
 >                 throw $ InvalidCapability 0
 >             (pd,asid) <- case pdCap of
@@ -848,9 +860,9 @@ FIXME ARMHYP up to here
 >                 throw $ InvalidArgument 0
 >             pdCheck <- lookupErrorOnFailure False $ findPDForASID asid
 >             when (pdCheck /= pd) $ throw $ InvalidCapability 1
->             let pdIndex = vaddr `shiftR` 20 -- FIXME ARMHYP what is magic number
->             let vaddr' = pdIndex `shiftL` 20 -- FIXME ARMHYP what is magic number
->             let pdSlot = pd + (PPtr $ pdIndex `shiftL` pdSizeBits)
+>             let pdIndex = vaddr `shiftR` (ptBits - pdeBits + ptBits - pteBits) -- FIXME ARMHYP is this right? replacing magic numbers
+>             let vaddr' = pdIndex `shiftL` (ptBits - pdeBits + ptBits - pteBits)
+>             let pdSlot = pd + (PPtr $ pdIndex `shiftL` pdeBits)
 >             oldpde <- withoutFailure $ getObject pdSlot
 >             unless (oldpde == InvalidPDE) $ throw DeleteFirst
 >             let pde = PageTablePDE {
@@ -874,7 +886,7 @@ FIXME ARMHYP up to here
 Virtual page capabilities may each represent a single mapping into a page table. Unlike page table capabilities, they may be unmapped without deletion, and may be freely copied to allow multiple mappings of the same page. Along with the \emph{Map} and \emph{Unmap} operations, there is a \emph{Remap} operation, which is used to change the access permissions on an existing mapping.
 
 FIXME ARMHYP TODO check SMMU isIOSpaceFrame(cap) for remap / unmap
-FIXME ARMHYP TODO add ARMPageMapIO
+FIXME ARMHYP TODO add call to ARMPageMapIO decode for map and unmap; remap not allowed
 FIXME ARMHYP capVPMappedAddress is not what we want for ARM\_HYP? C code has capFMappedAddress for ARM, capFBasePtr for ARM\_HYP here
 
 > decodeARMMMUInvocation label args _ cte cap@(PageCap {}) extraCaps =
@@ -908,7 +920,9 @@ FIXME ARMHYP capVPMappedAddress is not what we want for ARM\_HYP? C code has cap
 >                 pageMapCTSlot = cte,
 >                 pageMapEntries = entries }
 >         (ArchInvocationLabel ARMPageMap, _, _) -> throw TruncatedMessage
+>         (ArchInvocationLabel ARMPageMapIO, _, _) -> error "FIXME ARMHYP TODO IO"
 >         (ArchInvocationLabel ARMPageRemap, rightsMask:attr:_, (pdCap, _):_) -> do
+>             when (isIOSpaceFrame cap) $ throw IllegalOperation
 >             (pd,asid) <- case pdCap of
 >                 ArchObjectCap (PageDirectoryCap {
 >                         capPDMappedASID = Just asid,
@@ -930,16 +944,18 @@ FIXME ARMHYP capVPMappedAddress is not what we want for ARM\_HYP? C code has cap
 >                 pageRemapASID = asidCheck,
 >                 pageRemapEntries = entries }
 >         (ArchInvocationLabel ARMPageRemap, _, _) -> throw TruncatedMessage
->         (ArchInvocationLabel ARMPageUnmap, _, _) -> return $ InvokePage $ PageUnmap {
->                 pageUnmapCap = cap,
->                 pageUnmapCapSlot = cte }
+>         (ArchInvocationLabel ARMPageUnmap, _, _) ->
+>                 return $ if (isIOSpaceFrame cap)
+>                          then error "FIXME ARMHYP TODO IO"
+>                          else InvokePage $ PageUnmap {
+>                                              pageUnmapCap = cap,
+>                                              pageUnmapCapSlot = cte }
 >         (ArchInvocationLabel ARMPageClean_Data, _, _) -> decodeARMPageFlush label args cap
 >         (ArchInvocationLabel ARMPageInvalidate_Data, _, _) -> decodeARMPageFlush label args cap
 >         (ArchInvocationLabel ARMPageCleanInvalidate_Data, _, _) -> decodeARMPageFlush label args cap
 >         (ArchInvocationLabel ARMPageUnify_Instruction, _, _) -> decodeARMPageFlush label args cap
 >         (ArchInvocationLabel ARMPageGetAddress, _, _) -> return $ InvokePage $ PageGetAddr (capVPBasePtr cap)
 >         _ -> throw IllegalOperation
-
 
 The ASID control capability refers to the top level of a global two-level table used for allocating address space identifiers. It has only one method, "MakePool", which creates an ASID allocation pool given a single frame of untyped memory. Since this method allocates part of a global range of ASIDs, it may return a "DeleteFirst" error if the entire range has been allocated to existing ASID pools.
 
@@ -948,7 +964,7 @@ The ASID control capability refers to the top level of a global two-level table 
 >         (ArchInvocationLabel ARMASIDControlMakePool, index:depth:_,
 >                 (untyped,parentSlot):(root,_):_) -> do
 >             asidTable <- withoutFailure $ gets (armKSASIDTable . ksArchState)
->             let free = filter (\(x,y) -> x <= (1 `shiftL` asidHighBits) - 1 && isNothing y) $ assocs asidTable
+>             let free = filter (\(x,y) -> x <= (bit asidHighBits) - 1 && isNothing y) $ assocs asidTable
 >             when (null free) $ throw DeleteFirst
 >             let base = (fst $ head free) `shiftL` asidLowBits
 >             let pool = makeObject :: ASIDPool
@@ -983,7 +999,7 @@ ASID pool capabilities are used to allocate unique address space identifiers for
 >                     let Just p = poolPtr
 >                     when (p /= capASIDPool cap) $ throw $ InvalidCapability 0
 >                     ASIDPool pool <- withoutFailure $ getObject $ p
->                     let free = filter (\(x,y) -> x <=  (1 `shiftL` asidLowBits) - 1
+>                     let free = filter (\(x,y) -> x <=  (bit asidLowBits) - 1
 >                                                  && x + base /= 0 && isNothing y) $ assocs pool
 >                     when (null free) $ throw DeleteFirst
 >                     let asid = fst $ head free
@@ -995,20 +1011,26 @@ ASID pool capabilities are used to allocate unique address space identifiers for
 >         (ArchInvocationLabel ARMASIDPoolAssign, _) -> throw TruncatedMessage
 >         _ -> throw IllegalOperation
 
+> decodeARMMMUInvocation label _ _ _ cap@(VCPUCap {}) extraCaps = error "FIXME ARMHYP TODO VCPU"
+> decodeARMMMUInvocation label _ _ _ cap@(IOSpaceCap {}) extraCaps = error "FIXME ARMHYP TODO IOSpace"
+> decodeARMMMUInvocation label _ _ _ cap@(IOPageDirectoryCap {}) extraCaps = error "FIXME ARMHYP IO"
+> decodeARMMMUInvocation label _ _ _ cap@(IOPageTableCap {}) extraCaps = error "FIXME ARMHYP IO"
+
 > decodeARMPageFlush :: Word -> [Word] -> ArchCapability ->
 >                       KernelF SyscallError ArchInv.Invocation
 > decodeARMPageFlush label args cap = case (args, capVPMappedAddress cap) of
->     (start:end:_, Just (asid, vaddr)) -> do
+>     (start:end:_, Just (asid, _)) -> do
+>         let vaddr = capVPBasePtr cap
 >         pd <- lookupErrorOnFailure False $ findPDForASID asid
 >         when (end <= start) $ 
 >             throw $ InvalidArgument 1
->         let pageSize = 1 `shiftL` pageBitsForSize (capVPSize cap)
+>         let pageSize = bit (pageBitsForSize (capVPSize cap))
 >         let pageBase = addrFromPPtr $ capVPBasePtr cap
 >         when (start >= pageSize || end > pageSize) $
 >             throw $ InvalidArgument 0
 >         let pstart = pageBase + toPAddr start
->         let start' = start + fromVPtr vaddr
->         let end' = end + fromVPtr vaddr
+>         let start' = start + fromPPtr vaddr
+>         let end' = end + fromPPtr vaddr
 >         return $ InvokePage $ PageFlush {
 >               pageFlushType = labelToFlushType label,
 >               pageFlushStart = VPtr $ start',
@@ -1018,7 +1040,6 @@ ASID pool capabilities are used to allocate unique address space identifiers for
 >               pageFlushASID = asid }
 >     (_:_:_, Nothing) -> throw IllegalOperation     
 >     _ -> throw TruncatedMessage
-
 
 Checking virtual address for page size dependent alignment:
 
@@ -1045,6 +1066,10 @@ notion of the largest permitted object size, and checks it appropriately.
 >         InvokePage oper -> performPageInvocation oper
 >         InvokeASIDControl oper -> performASIDControlInvocation oper
 >         InvokeASIDPool oper -> performASIDPoolInvocation oper
+>         InvokeVCPU _ -> error "FIXME ARMHYP TODO VCPU"
+>         InvokeIOSpace _ -> error "FIXME ARMHYP TODO IOSpace"
+>         InvokeIOPageTable _ -> error "FIXME ARMHYP TODO IO"
+>         InvokePageIO _ -> error "FIXME ARMHYP TODO IO"
 >     return $ []
 
 > performPageDirectoryInvocation :: PageDirectoryInvocation -> Kernel ()
@@ -1073,12 +1098,11 @@ Don't flush an empty range.
 >         Just (asid, vaddr) -> do
 >             unmapPageTable asid vaddr (capPTBasePtr cap)
 >             let ptr = capPTBasePtr cap
->             let pteBits = objBits InvalidPTE
 >             let slots = [ptr, ptr + bit pteBits .. ptr + bit ptBits - 1]
 >             mapM_ (flip storePTE InvalidPTE) slots
 >             doMachineOp $
 >                 cleanCacheRange_PoU (VPtr $ fromPPtr $ ptr)
->                                     (VPtr $ fromPPtr $ (ptr + (1 `shiftL` ptBits) - 1))
+>                                     (VPtr $ fromPPtr $ (ptr + (bit ptBits) - 1))
 >                                     (addrFromPPtr ptr)
 >         Nothing -> return ()
 >     ArchObjectCap cap <- getSlotCap ctSlot
@@ -1209,4 +1233,4 @@ The kernel model's ARM targets use an external simulation of the physical addres
 >     doMachineOp $ storeWordVM (PPtr $ fromPPtr slot) w0
 >     doMachineOp $ storeWordVM (PPtr $ fromPPtr slot + fromIntegral wordSize) w1
 
-
+FIXME ARMHYP IOPTE IOPDE - here or in IOSpace?
