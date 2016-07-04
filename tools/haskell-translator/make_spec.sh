@@ -74,7 +74,7 @@ then
     (cd $L4CAP && git status --short) >> $SPEC/version
 fi
 
-ARCHES=("ARM")
+ARCHES=("ARM", "ARM_HYP")
 
 NAMES=`cd $SKEL; ls *.thy`
 
