@@ -273,7 +273,7 @@ where
           (* FIXME ARMHYP: unnecessary check now that associate/dissociate are unified? *)
           (tcb_opt, _) \<leftarrow> liftE $ get_vcpu vcpu_ref;
           whenE (tcb_opt \<noteq> None) $ throwError DeleteFirst;
-          vcpu_opt \<leftarrow> liftE $ thread_get tcb_vcpu tcb_ref;
+          vcpu_opt \<leftarrow> liftE $ thread_get (tcb_vcpu o tcb_arch) tcb_ref;
           whenE (vcpu_opt \<noteq> None) $ throwError DeleteFirst;
           returnOk $ InvokeVCPU $ VCPUSetTCB vcpu_ref tcb_ref
         odE
