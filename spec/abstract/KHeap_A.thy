@@ -184,9 +184,9 @@ definition
 where
   "as_user tptr f \<equiv> do
     tcb \<leftarrow> gets_the $ get_tcb tptr;
-    uc \<leftarrow> return $ tcb_context tcb;
+    uc \<leftarrow> return $ tcb_context (tcb_arch tcb);
     (a, uc') \<leftarrow> select_f $ f uc;
-    new_tcb \<leftarrow> return $ tcb \<lparr> tcb_context := uc' \<rparr>;
+    new_tcb \<leftarrow> return $ tcb \<lparr> tcb_arch := (tcb_arch tcb)\<lparr> tcb_context := uc' \<rparr> \<rparr>;
     set_object tptr (TCB new_tcb);
     return a
   od"

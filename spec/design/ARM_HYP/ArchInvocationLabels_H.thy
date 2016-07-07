@@ -38,7 +38,10 @@ datatype arch_invocation_label =
   | ARMPageGetAddress
   | ARMASIDControlMakePool
   | ARMASIDPoolAssign
-
+  | ARMVCPUSetTCB
+  | ARMVCPUInjectIRQ
+  | ARMVCPUReadRegister
+  | ARMVCPUWriteRegister
 
 end
 
@@ -72,7 +75,11 @@ definition
       ARMPageUnify_Instruction,
       ARMPageGetAddress,
       ARMASIDControlMakePool,
-      ARMASIDPoolAssign
+      ARMASIDPoolAssign,
+      ARMVCPUSetTCB,
+      ARMVCPUInjectIRQ,
+      ARMVCPUReadRegister,
+      ARMVCPUWriteRegister
     ]"
 
 

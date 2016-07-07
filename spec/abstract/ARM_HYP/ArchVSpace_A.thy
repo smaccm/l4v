@@ -548,7 +548,8 @@ where
    | PageDirectoryCap _ None \<Rightarrow> throwError IllegalOperation
    | PageCap r R pgs x \<Rightarrow> returnOk (PageCap r R pgs None)
    | ASIDControlCap \<Rightarrow> returnOk c
-   | ASIDPoolCap _ _ \<Rightarrow> returnOk c"
+   | ASIDPoolCap _ _ \<Rightarrow> returnOk c
+   | VCPUCap _ \<Rightarrow> returnOk c"
 
 text {* No user-modifiable data is stored in ARM-specific capabilities. *}
 definition
@@ -556,6 +557,43 @@ definition
 where
   "arch_update_cap_data data c \<equiv> ArchObjectCap c"
 
+text {* Dissociate a VCPU from a TCB *}
+definition
+  dissociate_vcpu :: "obj_ref \<Rightarrow> (unit,'z::state_ext) s_monad"
+where
+  "dissociate_vcpu vcpu \<equiv> do
+    (tcb_opt, r) \<leftarrow> get_vcpu vcpu;
+    case tcb_opt of
+      None \<Rightarrow> return ()
+    | Some tcb \<Rightarrow> do
+        thread_set (\<lambda>t. t \<lparr> tcb_arch := (tcb_arch t)\<lparr> tcb_vcpu := None \<rparr> \<rparr>) tcb;
+        set_vcpu vcpu (None, r)
+      od
+  od"
+
+text {* Dissociate a TCB from a VCPU *}
+definition
+  dissociate_tcb :: "obj_ref \<Rightarrow> (unit,'z::state_ext) s_monad"
+where
+  "dissociate_tcb tcb_ref \<equiv> do
+    vcpu_opt \<leftarrow> thread_get (tcb_vcpu o tcb_arch) tcb_ref;
+    case vcpu_opt of
+      None \<Rightarrow> return ()
+    | Some vcpu \<Rightarrow> dissociate_vcpu vcpu
+  od"
+
+text {* Associate a VCPU with a TCB *}
+definition
+  associate :: "obj_ref \<Rightarrow> obj_ref \<Rightarrow> (unit,'z::state_ext) s_monad"
+where
+  "associate vcpu_ref tcb_ref \<equiv> do
+    vcpu_opt \<leftarrow> thread_get (tcb_vcpu o tcb_arch) tcb_ref;
+    when (vcpu_opt \<noteq> None) (dissociate_tcb tcb_ref);
+    (old_tcb,r) \<leftarrow> get_vcpu vcpu_ref;
+    when (old_tcb \<noteq> None) (dissociate_tcb tcb_ref);
+    set_vcpu vcpu_ref (Some tcb_ref, r);
+    thread_set (tcb_arch_update $ tcb_vcpu_update $ K $ Some vcpu_ref) tcb_ref
+  od"
 
 text {* Actions that must be taken on finalisation of ARM-specific
 capabilities. *}
@@ -577,6 +615,10 @@ where
   od
   | (PageCap ptr _ s (Some (a, v)), _) \<Rightarrow> do
      unmap_page s a v ptr;
+     return NullCap
+  od
+  | (VCPUCap vcpu_ref, True) \<Rightarrow> do
+     dissociate_vcpu vcpu_ref;
      return NullCap
   od
   | _ \<Rightarrow> return NullCap"
@@ -642,7 +684,8 @@ where
           modify (\<lambda>s. s \<lparr> arch_state := (arch_state s) \<lparr> arm_asid_table := asid_table' \<rparr>\<rparr>)
       od;
       return cap
-    od"
+    od
+  | VCPUCap vcpu_ref \<Rightarrow> return cap" (* FIXME ARMHYP: when do we dissociate? *)
 
 text {* A thread's virtual address space capability must be to a page directory
 to be valid on the ARM architecture. *}

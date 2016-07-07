@@ -366,10 +366,9 @@ record tcb =
  tcb_state         :: thread_state
  tcb_fault_handler :: cap_ref
  tcb_ipc_buffer    :: vspace_ref
- tcb_context       :: user_context
  tcb_fault         :: "fault option"
  tcb_bound_notification     :: "obj_ref option"
-
+ tcb_arch          :: arch_tcb
 
 text {* Determines whether a thread in a given state may be scheduled. *}
 primrec
@@ -396,9 +395,9 @@ definition
       tcb_state    = Inactive,
       tcb_fault_handler = to_bl (0::machine_word),
       tcb_ipc_buffer = 0,
-      tcb_context    = new_context,
       tcb_fault      = None, 
-      tcb_bound_notification  = None \<rparr>"
+      tcb_bound_notification  = None,
+      tcb_arch       = default_arch_tcb\<rparr>"
 
 text {*
 All kernel objects are CNodes, TCBs, Endpoints, Notifications or architecture

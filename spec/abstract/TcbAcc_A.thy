@@ -40,11 +40,11 @@ definition
   "set_mrs thread buf msgs \<equiv>
    do
      tcb \<leftarrow> gets_the $ get_tcb thread;
-     context \<leftarrow> return (tcb_context tcb);
+     context \<leftarrow> return (tcb_context (tcb_arch tcb));
      new_regs \<leftarrow> return (\<lambda>reg. if reg \<in> set (take (length msgs) msg_registers)
                               then msgs ! (the_index msg_registers reg)
                               else context reg);
-     set_object thread (TCB (tcb \<lparr> tcb_context := new_regs \<rparr>));
+     set_object thread (TCB (tcb \<lparr> tcb_arch := (tcb_arch tcb)\<lparr> tcb_context := new_regs \<rparr> \<rparr>));
      remaining_msgs \<leftarrow> return (drop (length msg_registers) msgs);
      case buf of
      None      \<Rightarrow> return $ nat_to_len (min (length msg_registers) (length msgs))
