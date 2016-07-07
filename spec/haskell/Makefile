@@ -11,7 +11,6 @@
 BOOT_MODULES = Kernel/CSpace Kernel/Thread Kernel/FaultHandler \
     Kernel/VSpace Kernel/Init Model/PSpace Object/TCB Object/CNode  \
     Object/ObjectType Object/Endpoint Object/Interrupt
-# FIXME ^ VCPUs go above?
 
 BOOT_FILES=$(BOOT_MODULES:%=src/SEL4/%.lhs-boot)
 
@@ -30,14 +29,14 @@ build: $(BOOT_FILES)
 # FIXME XXX these warnings are useless during large Haskell updates
 GHC_FIXME_OPTS=--ghc-options="-fno-warn-unused-matches -fno-warn-unused-imports"
 
-build-arm-hyp: $(BOOT_FILES)
+build-arm-hyp: $(BOOT_FILES) src/SEL4/Object/Structures.lhs-boot
 	cabal sandbox init
 	cabal install --dependencies-only -w "$(GHC)"
 	cabal configure --configure-option="arm-tk1" -w "$(GHC)" \
 	    --flags="ArchArmHyp -FFI" $(GHC_FIXME_OPTS)
 	cabal build
 
-build-arm-hyp-nosmmu: $(BOOT_FILES)
+build-arm-hyp-nosmmu: $(BOOT_FILES) src/SEL4/Object/Structures.lhs-boot
 	cabal sandbox init
 	cabal install --dependencies-only -w "$(GHC)"
 	cabal configure --configure-option="arm-tk1-nosmmu" -w "$(GHC)" \
