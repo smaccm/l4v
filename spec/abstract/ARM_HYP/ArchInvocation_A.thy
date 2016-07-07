@@ -20,6 +20,27 @@ begin
 
 context Arch begin global_naming ARM_A
 
+text {* Message infos are encoded to or decoded from a data word. *}
+primrec
+  message_info_to_data :: "message_info \<Rightarrow> data"
+where
+  "message_info_to_data (MI ln exc unw mlabel) =
+   (let
+        extra = exc << 7;
+        unwrapped = unw << 9;
+        label = mlabel << 12
+    in
+       label || extra || unwrapped || ln)"
+
+text {* Hard-coded to avoid recursive imports? *}
+definition
+  data_to_message_info :: "data \<Rightarrow> message_info"
+where
+  "data_to_message_info w \<equiv>
+   MI (let v = w && ((1 << 7) - 1) in if v > 120 then 120 else v) ((w >> 7) && ((1 << 2) - 1))
+      ((w >> 9) && ((1 << 3) - 1)) (w >> 12)"
+
+
 text {* These datatypes encode the arguments to the various possible
 ARM-specific system calls. Selectors are defined for various fields
 for convenience elsewhere. *}
@@ -64,20 +85,12 @@ datatype page_invocation
      | PageGetAddr
          (page_get_paddr: obj_ref)
 
-datatype vcpu_invocation =
-       VCPUSetTCB obj_ref (*vcpu*) obj_ref (*tcb*)
-       (*FIXME ARMHYP: canonise canonical types for VCPUInjectIRQ *)
-     | VCPUInjectIRQ obj_ref "8 word"(*index*) "8 word"(*group*) "8 word"(*priority*) "16 word"(*virq*)
-     | VCPUReadRegister obj_ref hyper_reg
-     | VCPUWriteRegister obj_ref hyper_reg machine_word
-
 datatype arch_invocation
      = InvokePageTable page_table_invocation
      | InvokePageDirectory page_directory_invocation
      | InvokePage page_invocation
      | InvokeASIDControl asid_control_invocation
      | InvokeASIDPool asid_pool_invocation
-     | InvokeVCPU vcpu_invocation
 
 datatype arch_copy_register_sets =
     ArchDefaultExtraRegisters

@@ -56,24 +56,6 @@ definition
   od"
 
 definition
-  get_vcpu :: "obj_ref \<Rightarrow> (obj_ref option \<times> hyper_reg_context,'z::state_ext) s_monad" where
-  "get_vcpu ptr \<equiv> do
-     kobj \<leftarrow> get_object ptr;
-     (case kobj of ArchObj (VCPU t r) \<Rightarrow> return (t,r)
-                 | _ \<Rightarrow> fail)
-   od"
-
-definition
-  set_vcpu :: "obj_ref \<Rightarrow> (obj_ref option \<times> hyper_reg_context) \<Rightarrow> (unit,'z::state_ext) s_monad"
-where
-  "set_vcpu ptr vcpu \<equiv> do
-     (t,r) \<leftarrow> return vcpu;
-     kobj \<leftarrow> get_object ptr;
-     assert (case kobj of ArchObj (VCPU _ _) \<Rightarrow> True | _ \<Rightarrow> False);
-     set_object ptr (ArchObj (VCPU t r))
-   od"
-
-definition
   get_pd :: "obj_ref \<Rightarrow> (12 word \<Rightarrow> pde,'z::state_ext) s_monad" where
   "get_pd ptr \<equiv> do
      kobj \<leftarrow> get_object ptr;

@@ -21,12 +21,6 @@ imports
   ArchVMRights_A
 begin
 
-
-typedecl hyper_reg -- "enumeration of additional hyper call registers"
-axiomatization where hyper_reg_enum_class: "OFCLASS(hyper_reg, enum_class)"
-instance hyper_reg :: enum by (rule hyper_reg_enum_class)
-
-
 context Arch begin global_naming ARM_A
 
 text {*
@@ -53,7 +47,6 @@ datatype arch_cap =
  | PageCap obj_ref cap_rights vmpage_size "(asid * vspace_ref) option"
  | PageTableCap obj_ref "(asid * vspace_ref) option"
  | PageDirectoryCap obj_ref "asid option"
- | VCPUCap obj_ref
 
 lemmas arch_cap_cases =
   arch_cap.induct[where arch_cap=x and P="\<lambda>x'. x = x' \<longrightarrow> P x'" for x P, simplified, rule_format]
@@ -99,44 +92,11 @@ datatype pte =
  | LargePagePTE obj_ref vm_attributes cap_rights
  | SmallPagePTE obj_ref vm_attributes cap_rights
 
-
-type_synonym hyper_reg_context = "hyper_reg \<Rightarrow> 32 word"
-
-(* FIXME ARMHYP: C code has these. Do we want to model these, or just have DONT_TRANSLATE on
-accessor functions that get to these? In particular vgic.lr manages virtual IRQs; do we ever want
-to prove anything about those?
-
-struct cpXRegs {
-    uint32_t sctlr;
-    uint32_t actlr;
-};
-
-struct gicVCpuIface {
-    uint32_t hcr;
-    uint32_t vmcr;
-    uint32_t apr;
-    uint32_t lr[64];
-};
-
-struct vcpu {
-    /* TCB associated with this VCPU. */
-    struct tcb *tcb;
-    struct cpXRegs cpx;
-    struct gicVCpuIface vgic;
-};
-
-*)
-text {*
-  ASID pools translate 10 bits, VCPUs store a potential association to a TCB as well as 
-  an extended register context. Page tables have 512 entries (cf B3.6.5, pg 1348). For data pages,
-  we record their size.
-*}
 datatype arch_kernel_obj =
    ASIDPool "10 word \<rightharpoonup> obj_ref"
  | PageTable "word8 \<Rightarrow> pte"
  | PageDirectory "12 word \<Rightarrow> pde"
  | DataPage vmpage_size
- | VCPU "obj_ref option" hyper_reg_context
 
 lemmas arch_kernel_obj_cases =
   arch_kernel_obj.induct[where arch_kernel_obj=x and P="\<lambda>x'. x = x' \<longrightarrow> P x'" for x P, simplified, rule_format]
@@ -153,7 +113,6 @@ where
 | "arch_obj_size (PageCap x rs sz as4) = pageBitsForSize sz"
 | "arch_obj_size (PageDirectoryCap x as2) = 14"
 | "arch_obj_size (PageTableCap x as3) = 10"
-| "arch_obj_size (VCPUCap _) = 12"
 
 primrec
   arch_kobj_size :: "arch_kernel_obj \<Rightarrow> nat"
@@ -162,8 +121,6 @@ where
 | "arch_kobj_size (PageTable pte) = 10"
 | "arch_kobj_size (PageDirectory pde) = 14"
 | "arch_kobj_size (DataPage sz) = pageBitsForSize sz"
-| "arch_kobj_size (VCPU _ _) = 12"
-(* FIXME ARMHYP: vcpu_bits? *)
 
 primrec
   aobj_ref :: "arch_cap \<rightharpoonup> obj_ref"
@@ -173,7 +130,6 @@ where
 | "aobj_ref (PageCap x rs sz as4) = Some x"
 | "aobj_ref (PageDirectoryCap x as2) = Some x"
 | "aobj_ref (PageTableCap x as3) = Some x"
-| "aobj_ref (VCPUCap x) = Some x"
 
 primrec (nonexhaustive)
   acap_rights :: "arch_cap \<Rightarrow> cap_rights"
@@ -197,7 +153,6 @@ datatype
   | PageTableObj
   | PageDirectoryObj
   | ASIDPoolObj
-  | VCPUObj
 
 definition
   arch_default_cap :: "aobject_type \<Rightarrow> obj_ref \<Rightarrow> nat \<Rightarrow> arch_cap" where
@@ -208,9 +163,7 @@ definition
   | SuperSectionObj \<Rightarrow> PageCap r vm_read_write ARMSuperSection None
   | PageTableObj \<Rightarrow> PageTableCap r None
   | PageDirectoryObj \<Rightarrow> PageDirectoryCap r None
-  | VCPUObj \<Rightarrow> VCPUCap r
   | ASIDPoolObj \<Rightarrow> ASIDPoolCap r 0" (* unused *)
-
 
 definition
   default_arch_object :: "aobject_type \<Rightarrow> nat \<Rightarrow> arch_kernel_obj" where
@@ -221,7 +174,6 @@ definition
   | SuperSectionObj \<Rightarrow> DataPage ARMSuperSection
   | PageTableObj \<Rightarrow> PageTable (\<lambda>x. InvalidPTE)
   | PageDirectoryObj \<Rightarrow> PageDirectory (\<lambda>x. InvalidPDE)
-  | VCPUObj \<Rightarrow> VCPU None (\<lambda>x. 0)
   | ASIDPoolObj \<Rightarrow> ASIDPool (\<lambda>_. None)"
 
 type_synonym hw_asid = word8
