@@ -290,14 +290,29 @@ end
 
 section "Arch-specific tcb"
 
+
+qualify ARM_A (in Arch)
+
 record arch_tcb =
  tcb_context       :: user_context 
  tcb_vcpu          :: "obj_ref option"
+
+end_qualify
+
+context begin interpretation Arch .
+requalify_consts tcb_context tcb_context_update
+end
+
+context Arch begin global_naming ARM_A
 
 definition
   default_arch_tcb :: arch_tcb where
   "default_arch_tcb \<equiv> \<lparr>
       tcb_context    = new_context,
       tcb_vcpu       = None \<rparr>"
+
+
+end
+
 
 end

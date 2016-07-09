@@ -30,6 +30,7 @@ requalify_types
   vm_rights
   arch_kernel_obj
   arch_state
+  arch_tcb
         
 
 requalify_consts
@@ -40,6 +41,7 @@ requalify_consts
   aobj_ref
   asid_high_bits
   asid_low_bits
+  default_arch_tcb
 
 end
 
