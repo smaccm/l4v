@@ -370,7 +370,7 @@ record tcb =
  tcb_ipc_buffer    :: vspace_ref
  tcb_fault         :: "fault option"
  tcb_bound_notification     :: "obj_ref option"
- tcb_arch          :: arch_tcb
+ tcb_arch          :: arch_tcb (* arch_tcb must have a field for user context *)
 
 text {* Determines whether a thread in a given state may be scheduled. *}
 primrec

@@ -293,8 +293,9 @@ section "Arch-specific tcb"
 
 qualify ARM_A (in Arch)
 
+(* arch specific part of tcb: this must have a field for user context *)
 record arch_tcb =
- tcb_context       :: user_context 
+ tcb_context       :: user_context
  tcb_vcpu          :: "obj_ref option"
 
 end_qualify
