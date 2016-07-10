@@ -357,9 +357,4 @@ end
 (*>*)
 end_qualify
 
-context Arch begin global_naming ARM
-
-datatype arch_fault = DummyArchFault
-
-end
 end
