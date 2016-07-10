@@ -18,6 +18,10 @@ theory ExceptionTypes_A
 imports MiscMachine_A
 begin
 
+context begin interpretation Arch .
+requalify_types arch_fault
+end
+
 text {*
   There are two types of exceptions that can occur in the kernel:
   faults and errors. Faults are reported to the user's fault handler. 
@@ -38,6 +42,7 @@ datatype fault
          | VMFault data "data list"
          | UnknownSyscallException data
          | UserException data data
+         | ArchFault arch_fault
 
 datatype syscall_error
          = InvalidArgument nat

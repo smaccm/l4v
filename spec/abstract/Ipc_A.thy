@@ -161,6 +161,7 @@ where
      msg \<leftarrow> as_user thread $ mapM getRegister exceptionMessage;
      return (4, msg @ [exception, code])
    od)"
+| "make_fault_msg (ArchFault v) b = undefined " (* arch_fault *)
 
 text {* React to a fault reply. The reply message is interpreted in a manner
 that depends on the type of the original fault. For some fault types a thread
@@ -185,6 +186,7 @@ where
          exceptionMessage msg;
      return (label = 0)
    od"
+| " handle_fault_reply (ArchFault v) b c d = undefined" (* arch_fault *)
 
 text {* Transfer a fault message from a faulting thread to its supervisor. *}
 definition
