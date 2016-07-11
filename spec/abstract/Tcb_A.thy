@@ -15,7 +15,7 @@ The TCB and thread related specifications.
 chapter "Threads and TCBs"
 
 theory Tcb_A
-imports TcbAcc_A Schedule_A
+imports "$L4V_ARCH/ArchTcbAcc_A" Schedule_A
 begin
 
 context begin interpretation Arch .
@@ -85,21 +85,6 @@ definition
  "load_word_offs_word ptr offs \<equiv>
     do_machine_op $ loadWord (ptr + (offs * word_size))"
 
-text {* Get all of the message registers, both from the sending thread's current
-register file and its IPC buffer. *}
-definition
-  get_mrs :: "obj_ref \<Rightarrow> obj_ref option \<Rightarrow> message_info \<Rightarrow> 
-              (message list,'z::state_ext) s_monad" where
-  "get_mrs thread buf info \<equiv> do
-     context \<leftarrow> thread_get (tcb_context o tcb_arch) thread;
-     cpu_mrs \<leftarrow> return (map context msg_registers);
-     buf_mrs \<leftarrow> case buf
-       of None      \<Rightarrow> return []
-        | Some pptr \<Rightarrow> mapM (\<lambda>x. load_word_offs pptr x)
-               [length msg_registers + 1 ..< Suc msg_max_length];
-     return (take (unat (mi_length info)) $ cpu_mrs @ buf_mrs)
-   od"
-
 text {* Copy message registers from one thread to another. *}
 definition
   copy_mrs :: "obj_ref \<Rightarrow> obj_ref option \<Rightarrow> obj_ref \<Rightarrow>
@@ -129,27 +114,6 @@ definition
 definition
   get_tcb_vtable_ptr :: "obj_ref \<Rightarrow> cslot_ptr" where
   "get_tcb_vtable_ptr tcb_ref \<equiv> (tcb_ref, tcb_cnode_index 1)"
-
-text {* Copy a set of registers from a thread to memory and vice versa. *}
-definition
-  copyRegsToArea :: "register list \<Rightarrow> obj_ref \<Rightarrow> obj_ref \<Rightarrow> (unit,'z::state_ext) s_monad" where
-  "copyRegsToArea regs thread ptr \<equiv> do
-     context \<leftarrow> thread_get (tcb_context o tcb_arch) thread;
-     zipWithM_x (store_word_offs ptr)
-       [0 ..< length regs]
-       (map context regs)
-  od"
-
-definition
-  copyAreaToRegs :: "register list \<Rightarrow> obj_ref \<Rightarrow> obj_ref \<Rightarrow> (unit,'z::state_ext) s_monad" where
-  "copyAreaToRegs regs ptr thread \<equiv> do
-     old_regs \<leftarrow> thread_get (tcb_context o tcb_arch) thread;
-     vals \<leftarrow> mapM (load_word_offs ptr) [0 ..< length regs];
-     vals2 \<leftarrow> return $ zip vals regs;
-     vals3 \<leftarrow> return $ map (\<lambda>(v, r). (sanitiseRegister r v, r)) vals2;
-     new_regs \<leftarrow> return $ foldl (\<lambda>rs (v, r). rs ( r := v )) old_regs vals3;
-     thread_set (\<lambda>tcb. tcb \<lparr> tcb_arch := (tcb_arch tcb)\<lparr> tcb_context := new_regs \<rparr> \<rparr>) thread
-   od"
 
 text {* Optionally update the tcb at an address. *}
 definition

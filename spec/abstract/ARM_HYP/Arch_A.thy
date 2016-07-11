@@ -15,7 +15,7 @@ Entry point for architecture dependent definitions.
 chapter "Toplevel ARM Definitions"
 
 theory Arch_A
-imports "../TcbAcc_A"
+imports "ArchTcbAcc_A"
 begin
 
 

@@ -15,14 +15,15 @@ Specification of Inter-Process Communication.
 chapter "IPC"
 
 theory Ipc_A
-imports Tcb_A
+imports "$L4V_ARCH/ArchTcb_A"
 begin
 
 context begin interpretation Arch .
 
 requalify_consts
   lookup_ipc_buffer
-
+  set_mrs
+  get_mrs
 end
 
 section {* Getting and setting the message info register. *}

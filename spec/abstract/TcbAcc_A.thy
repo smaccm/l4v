@@ -22,6 +22,7 @@ context begin interpretation Arch .
 
 requalify_consts
   in_user_frame
+  as_user
 
 end
 
@@ -33,27 +34,6 @@ definition
        assert (in_user_frame (ptr + of_nat (offs * word_size)) s);
        do_machine_op $ storeWord (ptr + of_nat (offs * word_size)) v
     od"
-
-text {* Set the message registers of a thread. *}
-definition
-  set_mrs :: "obj_ref \<Rightarrow> obj_ref option \<Rightarrow> message list \<Rightarrow> (length_type,'z::state_ext) s_monad" where
-  "set_mrs thread buf msgs \<equiv>
-   do
-     tcb \<leftarrow> gets_the $ get_tcb thread;
-     context \<leftarrow> return (tcb_context (tcb_arch tcb));
-     new_regs \<leftarrow> return (\<lambda>reg. if reg \<in> set (take (length msgs) msg_registers)
-                              then msgs ! (the_index msg_registers reg)
-                              else context reg);
-     set_object thread (TCB (tcb \<lparr> tcb_arch := (tcb_arch tcb)\<lparr> tcb_context := new_regs \<rparr> \<rparr>));
-     remaining_msgs \<leftarrow> return (drop (length msg_registers) msgs);
-     case buf of
-     None      \<Rightarrow> return $ nat_to_len (min (length msg_registers) (length msgs))
-   | Some pptr \<Rightarrow> do
-       zipWithM_x (\<lambda>x. store_word_offs pptr x)
-          [length msg_registers + 1 ..< Suc msg_max_length] remaining_msgs;
-       return $ nat_to_len $ min (length msgs) msg_max_length
-     od
-   od"
 
 
 (* Needed for page invocations. *)

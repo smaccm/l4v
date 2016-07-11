@@ -300,10 +300,6 @@ record arch_tcb =
 
 end_qualify
 
-context begin interpretation Arch .
-requalify_consts tcb_context tcb_context_update
-end
-
 context Arch begin global_naming ARM_A
 
 definition

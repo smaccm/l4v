@@ -173,24 +173,6 @@ definition
  "get_irq_slot irq \<equiv> gets (\<lambda>st. (interrupt_irq_node st irq, []))"
 
 
-section "User Context"
-
-text {* 
-  Changes user context of specified thread by running 
-  specified user monad.
-*}
-definition
-  as_user :: "obj_ref \<Rightarrow> 'a user_monad \<Rightarrow> ('a,'z::state_ext) s_monad"
-where
-  "as_user tptr f \<equiv> do
-    tcb \<leftarrow> gets_the $ get_tcb tptr;
-    uc \<leftarrow> return $ tcb_context (tcb_arch tcb);
-    (a, uc') \<leftarrow> select_f $ f uc;
-    new_tcb \<leftarrow> return $ tcb \<lparr> tcb_arch := (tcb_arch tcb)\<lparr> tcb_context := uc' \<rparr> \<rparr>;
-    set_object tptr (TCB new_tcb);
-    return a
-  od"
-
 text {* Raise an exception if a property does not hold. *}
 definition
 throw_on_false :: "'e \<Rightarrow> (bool,'z::state_ext) s_monad \<Rightarrow> ('e + unit,'z::state_ext) s_monad" where
