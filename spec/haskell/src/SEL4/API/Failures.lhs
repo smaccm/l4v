@@ -10,6 +10,12 @@
 
 This module specifies the mechanisms used by the seL4 kernel to handle failures in kernel operations that must be communicated somehow to user-level code.
 
+\begin{impdetails}
+
+> {-# LANGUAGE CPP #-}
+
+\end{impdetails}
+
 > module SEL4.API.Failures where
 
 \begin{impdetails}
@@ -19,6 +25,8 @@ This module specifies the mechanisms used by the seL4 kernel to handle failures 
 
 \end{impdetails}
 
+> import SEL4.API.Failures.TARGET
+
 \subsection{Types}
 
 \subsubsection{Faults}
@@ -27,21 +35,17 @@ When user-level code causes a kernel event, processing of that event may fail in
 
 The procedure for handling faults is defined in \autoref{sec:kernel.faulthandler}; the fault messages sent and received by the kernel are defined in \autoref{sec:api.faults}.
 
-FIXME ARMHYP VCPU and VGIC faults should be handled here, but of course they are not VM faults, and they are very arch specific! where are they supposed to go?
-
 > data Fault
 >         = UserException {
 >             userExceptionNumber :: Word,
 >             userExceptionErrorCode :: Word }
->         | VMFault {
->             vmFaultAddress :: VPtr,
->             vmFaultArchData :: [Word] }
 >         | CapFault {
 >             capFaultAddress :: CPtr,
 >             capFaultInReceivePhase :: Bool,
 >             capFaultFailure :: LookupFailure }
 >         | UnknownSyscallException {
 >             unknownSyscallNumber :: Word }
+>         | ArchFault ArchFault
 >         deriving Show
 
 \subsection{Kernel Init Failure}
@@ -126,7 +130,7 @@ There is a similar function used for the "Fault" type; it is defined in \autoref
 >
 > msgFromSyscallError (FailedLookup s lf) =
 >     (6, (fromIntegral $ fromEnum s):(msgFromLookupFailure lf))
->     
+>
 > msgFromSyscallError TruncatedMessage = (7, [])
 >
 > msgFromSyscallError DeleteFirst = (8, [])
