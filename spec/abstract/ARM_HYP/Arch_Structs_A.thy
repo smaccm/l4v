@@ -86,9 +86,18 @@ page table, a page directory, or a data page used to model user
 memory.
 *}
 
+text {*
+Hypervisor extensions use long page table descriptors (64-bit) for the stage 2
+translation (host-to-hypervisor). This is a three-level table system, but the 
+hardware can be configured to omit the first level entirely if all second 
+levels are stored contiguously. We use this configuration to preserve the usual                                                                                                      
+page table/directory nomenclature. 
+seL4 does not use hardware domains or parity on ARM hypervisor systems.                                                                                                              
+
+*}
 datatype pde =
    InvalidPDE
- | PageTablePDE obj_ref vm_attributes machine_word
+ | PageTablePDE obj_ref
  | SectionPDE obj_ref vm_attributes machine_word cap_rights
  | SuperSectionPDE obj_ref vm_attributes cap_rights
 

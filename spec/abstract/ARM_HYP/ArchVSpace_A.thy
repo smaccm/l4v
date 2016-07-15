@@ -96,7 +96,7 @@ where
 |
 "ensure_safe_mapping (Inr (InvalidPDE, _)) = returnOk ()"
 |
-"ensure_safe_mapping (Inr (PageTablePDE _ _ _, _)) = fail"
+"ensure_safe_mapping (Inr (PageTablePDE _, _)) = fail"
 |
 "ensure_safe_mapping (Inr (SectionPDE _ _ _ _, pd_slots)) =
     mapME_x (\<lambda> slot. (doE
@@ -436,7 +436,7 @@ page_table_mapped :: "asid \<Rightarrow> vspace_ref \<Rightarrow> obj_ref \<Righ
     pd_slot \<leftarrow> returnOk $ lookup_pd_slot pd vaddr;
     pde \<leftarrow> liftE $ get_pde pd_slot;
     case pde of
-      PageTablePDE addr _ _ \<Rightarrow> returnOk $
+      PageTablePDE addr \<Rightarrow> returnOk $
              if addrFromPPtr pt = addr then Some pd else None
     | _ \<Rightarrow> returnOk None
 odE <catch> (K $ return None)"
@@ -772,7 +772,7 @@ where
      case pde of 
          SectionPDE f _ _ _ \<Rightarrow> return $ Some (ARMSection, f)
        | SuperSectionPDE f _ _ \<Rightarrow> return $ Some (ARMSuperSection, f)
-       | PageTablePDE t _ _ \<Rightarrow> (do
+       | PageTablePDE t \<Rightarrow> (do
            pt \<leftarrow> return $ ptrFromPAddr t;
            pte_slot \<leftarrow> return $ lookup_pt_slot_no_fail pt vaddr;
            pte \<leftarrow> get_master_pte pte_slot;

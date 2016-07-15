@@ -187,7 +187,7 @@ lookup_pt_slot :: "word32 \<Rightarrow> vspace_ref \<Rightarrow> (word32,'z::sta
     pd_slot \<leftarrow> returnOk (lookup_pd_slot pd vptr); 
     pde \<leftarrow> liftE $ get_pde pd_slot;
     (case pde of
-          PageTablePDE ptab _ _ \<Rightarrow>   (doE
+          PageTablePDE ptab \<Rightarrow>   (doE
             pt \<leftarrow> returnOk (ptrFromPAddr ptab);
             pt_index \<leftarrow> returnOk ((vptr >> 12) && 0xff);
             pt_slot \<leftarrow> returnOk (pt + (pt_index << 2));
