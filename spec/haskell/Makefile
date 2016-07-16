@@ -16,10 +16,10 @@ BOOT_FILES=$(BOOT_MODULES:%=src/SEL4/%.lhs-boot)
 
 GHC=ghc
 
-#all: build pdf FIXME original
+#all: build-arm pdf FIXME original
 all: build-arm-hyp
 
-build: $(BOOT_FILES)
+build-arm: $(BOOT_FILES)
 	cabal sandbox init
 	cabal install --dependencies-only -w "$(GHC)"
 	cabal configure --configure-option="arm-kzm" -w "$(GHC)" \
