@@ -406,6 +406,7 @@ The interrupt controller state consists of an array with one entry for each of t
 >     = IRQInactive
 >     | IRQSignal
 >     | IRQTimer
+>     | IRQReserved
 >     deriving (Show, Eq)
 
 Each entry in the domain schedule specifies a domain and a length (a number of time slices).
