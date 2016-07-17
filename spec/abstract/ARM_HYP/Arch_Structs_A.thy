@@ -127,6 +127,9 @@ definition
   pt_bits :: "nat" where
   "pt_bits \<equiv> 9 + pte_bits"
 
+definition
+  vcpu_bits :: "nat" where
+  "vcpu_bits \<equiv> pageBits"
 
 (* FIXME ARMHYP: C code has these. Do we want to model these, or just have DONT_TRANSLATE on
 accessor functions that get to these? In particular vgic.lr manages virtual IRQs; do we ever want
@@ -151,6 +154,10 @@ struct vcpu {
     struct gicVCpuIface vgic;
 };
 *)
+
+text {*  vcpu *} 
+
+datatype vcpu = vcpu_tcb_ptr obj_ref 
 
 
 text {*
