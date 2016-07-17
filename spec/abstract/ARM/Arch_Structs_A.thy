@@ -242,5 +242,25 @@ where
          | ASIDPool f               \<Rightarrow> AASIDPool)"
 
 end
+section "Arch-specific tcb"
+
+
+qualify ARM_A (in Arch)
+
+(* arch specific part of tcb: this must have a field for user context *)
+record arch_tcb =
+ tcb_context       :: user_context
+
+end_qualify
+
+context Arch begin global_naming ARM_A
+
+definition
+  default_arch_tcb :: arch_tcb where
+  "default_arch_tcb \<equiv> \<lparr>
+      tcb_context    = new_context\<rparr>"
+
+
+end
 
 end

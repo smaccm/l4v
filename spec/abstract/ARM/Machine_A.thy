@@ -134,6 +134,8 @@ definition
 definition
  "syscall_message \<equiv> syscallMessage"
 
+(* FIXME: arch_fault *)
+datatype arch_fault = DummyArchFault
 
 end
 
