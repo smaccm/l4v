@@ -46,6 +46,10 @@ build-arm-hyp-nosmmu: $(BOOT_FILES) src/SEL4/Object/Structures.lhs-boot
 pdf:
 	cd doc && make
 
+src/SEL4/Object/Structures.lhs-boot:
+	# never run mkhsboot for hand-crafted lhs-boot files
+	touch $@
+
 %.lhs-boot: %.lhs mkhsboot.pl
 	perl mkhsboot.pl -l < $< > $@
 
