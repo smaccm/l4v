@@ -265,9 +265,9 @@ The TCB is used to store various data about the thread's current state:
 
 >         tcbBoundNotification :: Maybe (PPtr Notification),
 
-\item and the saved user-level context of the thread.
+\item and any arch-specific TCB contents
 
->         tcbContext :: UserContext }
+>         tcbArch :: ArchTCB }
 >     deriving Show
 
 \end{itemize}
