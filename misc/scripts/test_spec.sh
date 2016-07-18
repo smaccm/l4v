@@ -27,7 +27,17 @@ then
 	exit 1
 fi
 
-ARCHES=("ARM")
+# which architectures to process
+ARCHES=("ARM" "ARM_HYP")
+
+# Match the CPP configuration used by SEL4.cabal and Setup.hs for Haskell build
+# Note: these should be in sync with both the Haskell .cabal and Setup.hs,
+#       AS WELL AS haskell-translator/make_spec.sh
+#       If these are not in sync, expect the unexpected.
+#       FIXME: move to a common location in haskell-translator (D.R.Y.)
+declare -A cpp_opts
+cpp_opts[ARM]="-DPLATFORM=QEmu -DPLATFORM_QEmu -DTARGET=ARM -DTARGET_ARM"
+cpp_opts[ARM_HYP]="-DPLATFORM=TK1 -DPLATFORM_TK1 -DTARGET=ARM_HYP -DTARGET_ARM_HYP -DCONFIG_ARM_HYPERVISOR_SUPPORT"
 
 NAMES=`cd $SKEL; ls *.thy`
 
@@ -124,7 +134,7 @@ echo "Generating spec from haskell..."
 
 for ARCH in ${ARCHES[@]}
 do
-        L4CPP="-DTARGET=$ARCH -DTARGET_$ARCH -DPLATFORM=QEmu -DPLATFORM_QEmu"
+        L4CPP=${cpp_opts[$ARCH]}
         export L4CPP
         cd ${HASKELL_TRANS}
         send_filenames ${ARCH} | python pars_skl.py -q /dev/stdin
