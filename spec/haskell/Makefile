@@ -17,7 +17,7 @@ BOOT_FILES=$(BOOT_MODULES:%=src/SEL4/%.lhs-boot)
 GHC=ghc
 
 #all: build-arm pdf FIXME original
-all: build-arm-hyp
+all: build-arm-hyp-nosmmu
 
 build-arm: $(BOOT_FILES)
 	cabal sandbox init
