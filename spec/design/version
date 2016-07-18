@@ -1,16 +1,17 @@
-Built from git repo at /home/mikit/myrepo/current/l4v/spec/haskell by mikit
+Built from git repo at /Users/miki/verification/l4v/spec/haskell by miki
 
 Generated from changeset:
-54e1e75 haskell: make build-arm-hyp-nosmmu the default build target
+28a5338 arm-hyp haskell: fix compile for build-arm-hyp-nosmmu
 
 
 Warning - uncomitted changes used:
+ M ../design/ARM_HYP/Hardware_H.thy
+ M ../design/ARM_HYP/RegisterSet_H.thy
+ M ../design/ARM_HYP/State_H.thy
  M ../design/Event_H.thy
  M ../design/version
+ M ../machine/ARM/Platform.thy
+ M ../machine/ARM_HYP/Platform.thy
  M ../../tools/haskell-translator/make_spec.sh
-?? ../../hs_err_pid11938.log
-?? ../abstract/document/root.aux
-?? ../abstract/document/root.dvi
-?? ../abstract/document/root.log
-?? ../abstract/document/root.out
-?? ../abstract/document/root.toc
+?? ../../memo
+?? ../../proof/invariant-abstract/temp.thy

@@ -36,6 +36,7 @@ datatype event =
   | UserLevelFault machine_word machine_word
   | Interrupt
   | VMFaultEvent vmfault_type
+  | HypervisorEvent hyp_fault_type
 
 
 end

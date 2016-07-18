@@ -18,6 +18,7 @@ context begin interpretation Arch .
 requalify_types
   machine_word 
   vmfault_type
+  hyp_fault_type
   irq
 
 requalify_consts
