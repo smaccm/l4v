@@ -18,7 +18,7 @@ theory State_H
 imports
   "../../../lib/HaskellLib_H"
   RegisterSet_H
-  "../../machine/ARM/MachineOps"
+  "../../machine/ARM_HYP/MachineOps"
 begin
 context Arch begin global_naming ARM_H
 
