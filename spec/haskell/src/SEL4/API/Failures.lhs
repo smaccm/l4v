@@ -45,7 +45,7 @@ The procedure for handling faults is defined in \autoref{sec:kernel.faulthandler
 >             capFaultFailure :: LookupFailure }
 >         | UnknownSyscallException {
 >             unknownSyscallNumber :: Word }
->         | ArchFault ArchFault
+>         | ArchFault { archFault :: ArchFault }
 >         deriving Show
 
 \subsection{Kernel Init Failure}
