@@ -18,7 +18,7 @@ imports
   "../Setup_Locale"
 begin
 
-context Arch begin global_naming ARM
+context Arch begin global_naming ARM_HYP
 
 text {*
   This theory lists platform-specific types and basic constants, in particular
