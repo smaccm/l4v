@@ -23,8 +23,8 @@
         <!-- Various seL4 specifications. -->
         <test name="ASpec">make ASpec</test>
         <test name="ExecSpec">make ExecSpec</test>
-        <test name="ARMASpec">export L4V_ARCH=ARM &amp;&amp; make ASpec</test>
-        <test name="ARMExecSpec">export L4V_ARCH=ARM &amp;&amp; make ExecSpec</test>
+        <test name="ASpec_ARM">export L4V_ARCH=ARM &amp;&amp; make ASpec</test>
+        <test name="ExecSpec_ARM">export L4V_ARCH=ARM &amp;&amp; make ExecSpec</test>
         <test name="DSpec">make DSpec</test>
         <test name="TakeGrant">make TakeGrant</test>
         <test name="ASepSpec" depends="ASpec">make ASepSpec</test>
