@@ -34,6 +34,7 @@ requalify_consts
   msgRegisters
   tpidrurwRegister
   fromVPtr
+  arch_tcb
 end
 
 #INCLUDE_HASKELL SEL4/Object/TCB.lhs Arch= bodies_only NOT liftFnMaybe assertDerived archThreadGet archThreadSet asUser sanitiseRegister
