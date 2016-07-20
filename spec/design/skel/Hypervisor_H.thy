@@ -8,24 +8,20 @@
  * @TAG(GD_GPL)
  *)
 
-(*
-	 The fault datatype. 
+(* 
+	Hypervisor code.
 *)
 
-chapter "Fault Structures"
-
-theory Fault_H
-imports "$L4V_ARCH/ArchFault_H"
+theory Hypervisor_H
+imports
+  CNode_H
+  "./$L4V_ARCH/ArchHypervisor_H"
+(*  KernelInitMonad_H*)
 begin
 
 context begin interpretation Arch .
-
-requalify_types
-  arch_fault
+requalify_consts
+  handleHypervisorFault
 end
-
-#INCLUDE_HASKELL_PREPARSE SEL4/API/Types.lhs
-#INCLUDE_HASKELL SEL4/API/Failures.lhs decls_only
-#INCLUDE_HASKELL SEL4/API/Failures.lhs bodies_only
 
 end
