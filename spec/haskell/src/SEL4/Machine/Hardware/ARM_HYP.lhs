@@ -646,7 +646,7 @@ With hypervisor extensions enabled, page table and page directory entries occupy
 > pdeBits = (3 :: Int)
 > pdBits = (11 :: Int) + pdeBits
 > ptBits = (9 :: Int) + pteBits
-> vcpuBits = pageBits :: Int
+> vcpuBits = pageBits
 
 #else /* CONFIG_ARM_HYPERVISOR_SUPPORT */
 
