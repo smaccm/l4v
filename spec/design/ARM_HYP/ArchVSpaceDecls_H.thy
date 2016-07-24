@@ -13,7 +13,7 @@ chapter "Retyping Objects"
 theory ArchVSpaceDecls_H
 imports ArchRetypeDecls_H "../InvocationLabels_H"
 begin
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 consts'
 globalsBase :: "vptr"
@@ -26,9 +26,6 @@ idleThreadCode :: "machine_word list"
 
 consts'
 mapKernelWindow :: "unit kernel"
-
-consts'
-createSectionPDE :: "vptr \<Rightarrow> unit kernel"
 
 consts'
 mapKernelDevice :: "(paddr * machine_word) \<Rightarrow> unit kernel"

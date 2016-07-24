@@ -20,10 +20,10 @@ imports
   ArchTypes_H
   ArchStructures_H
 begin
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 datatype kernel_state =
-    ARMKernelState machine_word "asid \<Rightarrow> ((machine_word) option)" "hardware_asid \<Rightarrow> (asid option)" hardware_asid "asid \<Rightarrow> ((hardware_asid * machine_word) option)" machine_word "machine_word list" "machine_word \<Rightarrow> arm_vspace_region_use"
+    ARMKernelState machine_word "asid \<Rightarrow> ((machine_word) option)" "hardware_asid \<Rightarrow> (asid option)" hardware_asid "asid \<Rightarrow> ((hardware_asid * machine_word) option)" machine_word vcpu "machine_word \<Rightarrow> arm_vspace_region_use"
 
 primrec
   armKSGlobalsFrame :: "kernel_state \<Rightarrow> machine_word"
@@ -36,9 +36,9 @@ where
   "armKSASIDTable (ARMKernelState v0 v1 v2 v3 v4 v5 v6 v7) = v1"
 
 primrec
-  armKSGlobalPD :: "kernel_state \<Rightarrow> machine_word"
+  armUSGlobalPT :: "kernel_state \<Rightarrow> machine_word"
 where
-  "armKSGlobalPD (ARMKernelState v0 v1 v2 v3 v4 v5 v6 v7) = v5"
+  "armUSGlobalPT (ARMKernelState v0 v1 v2 v3 v4 v5 v6 v7) = v5"
 
 primrec
   armKSHWASIDTable :: "kernel_state \<Rightarrow> hardware_asid \<Rightarrow> (asid option)"
@@ -51,9 +51,9 @@ where
   "armKSKernelVSpace (ARMKernelState v0 v1 v2 v3 v4 v5 v6 v7) = v7"
 
 primrec
-  armKSGlobalPTs :: "kernel_state \<Rightarrow> machine_word list"
+  armKSCurVCPU :: "kernel_state \<Rightarrow> vcpu"
 where
-  "armKSGlobalPTs (ARMKernelState v0 v1 v2 v3 v4 v5 v6 v7) = v6"
+  "armKSCurVCPU (ARMKernelState v0 v1 v2 v3 v4 v5 v6 v7) = v6"
 
 primrec
   armKSNextASID :: "kernel_state \<Rightarrow> hardware_asid"
@@ -76,9 +76,9 @@ where
   "armKSASIDTable_update f (ARMKernelState v0 v1 v2 v3 v4 v5 v6 v7) = ARMKernelState v0 (f v1) v2 v3 v4 v5 v6 v7"
 
 primrec
-  armKSGlobalPD_update :: "(machine_word \<Rightarrow> machine_word) \<Rightarrow> kernel_state \<Rightarrow> kernel_state"
+  armUSGlobalPT_update :: "(machine_word \<Rightarrow> machine_word) \<Rightarrow> kernel_state \<Rightarrow> kernel_state"
 where
-  "armKSGlobalPD_update f (ARMKernelState v0 v1 v2 v3 v4 v5 v6 v7) = ARMKernelState v0 v1 v2 v3 v4 (f v5) v6 v7"
+  "armUSGlobalPT_update f (ARMKernelState v0 v1 v2 v3 v4 v5 v6 v7) = ARMKernelState v0 v1 v2 v3 v4 (f v5) v6 v7"
 
 primrec
   armKSHWASIDTable_update :: "((hardware_asid \<Rightarrow> (asid option)) \<Rightarrow> (hardware_asid \<Rightarrow> (asid option))) \<Rightarrow> kernel_state \<Rightarrow> kernel_state"
@@ -91,9 +91,9 @@ where
   "armKSKernelVSpace_update f (ARMKernelState v0 v1 v2 v3 v4 v5 v6 v7) = ARMKernelState v0 v1 v2 v3 v4 v5 v6 (f v7)"
 
 primrec
-  armKSGlobalPTs_update :: "((machine_word list) \<Rightarrow> (machine_word list)) \<Rightarrow> kernel_state \<Rightarrow> kernel_state"
+  armKSCurVCPU_update :: "(vcpu \<Rightarrow> vcpu) \<Rightarrow> kernel_state \<Rightarrow> kernel_state"
 where
-  "armKSGlobalPTs_update f (ARMKernelState v0 v1 v2 v3 v4 v5 v6 v7) = ARMKernelState v0 v1 v2 v3 v4 v5 (f v6) v7"
+  "armKSCurVCPU_update f (ARMKernelState v0 v1 v2 v3 v4 v5 v6 v7) = ARMKernelState v0 v1 v2 v3 v4 v5 (f v6) v7"
 
 primrec
   armKSNextASID_update :: "(hardware_asid \<Rightarrow> hardware_asid) \<Rightarrow> kernel_state \<Rightarrow> kernel_state"
@@ -106,9 +106,9 @@ where
   "armKSASIDMap_update f (ARMKernelState v0 v1 v2 v3 v4 v5 v6 v7) = ARMKernelState v0 v1 v2 v3 (f v4) v5 v6 v7"
 
 abbreviation (input)
-  ARMKernelState_trans :: "(machine_word) \<Rightarrow> (asid \<Rightarrow> ((machine_word) option)) \<Rightarrow> (hardware_asid \<Rightarrow> (asid option)) \<Rightarrow> (hardware_asid) \<Rightarrow> (asid \<Rightarrow> ((hardware_asid * machine_word) option)) \<Rightarrow> (machine_word) \<Rightarrow> (machine_word list) \<Rightarrow> (machine_word \<Rightarrow> arm_vspace_region_use) \<Rightarrow> kernel_state" ("ARMKernelState'_ \<lparr> armKSGlobalsFrame= _, armKSASIDTable= _, armKSHWASIDTable= _, armKSNextASID= _, armKSASIDMap= _, armKSGlobalPD= _, armKSGlobalPTs= _, armKSKernelVSpace= _ \<rparr>")
+  ARMKernelState_trans :: "(machine_word) \<Rightarrow> (asid \<Rightarrow> ((machine_word) option)) \<Rightarrow> (hardware_asid \<Rightarrow> (asid option)) \<Rightarrow> (hardware_asid) \<Rightarrow> (asid \<Rightarrow> ((hardware_asid * machine_word) option)) \<Rightarrow> (machine_word) \<Rightarrow> (vcpu) \<Rightarrow> (machine_word \<Rightarrow> arm_vspace_region_use) \<Rightarrow> kernel_state" ("ARMKernelState'_ \<lparr> armKSGlobalsFrame= _, armKSASIDTable= _, armKSHWASIDTable= _, armKSNextASID= _, armKSASIDMap= _, armUSGlobalPT= _, armKSCurVCPU= _, armKSKernelVSpace= _ \<rparr>")
 where
-  "ARMKernelState_ \<lparr> armKSGlobalsFrame= v0, armKSASIDTable= v1, armKSHWASIDTable= v2, armKSNextASID= v3, armKSASIDMap= v4, armKSGlobalPD= v5, armKSGlobalPTs= v6, armKSKernelVSpace= v7 \<rparr> == ARMKernelState v0 v1 v2 v3 v4 v5 v6 v7"
+  "ARMKernelState_ \<lparr> armKSGlobalsFrame= v0, armKSASIDTable= v1, armKSHWASIDTable= v2, armKSNextASID= v3, armKSASIDMap= v4, armUSGlobalPT= v5, armKSCurVCPU= v6, armKSKernelVSpace= v7 \<rparr> == ARMKernelState v0 v1 v2 v3 v4 v5 v6 v7"
 
 lemma armKSGlobalsFrame_armKSGlobalsFrame_update [simp]:
   "armKSGlobalsFrame (armKSGlobalsFrame_update f v) = f (armKSGlobalsFrame v)"
@@ -118,8 +118,8 @@ lemma armKSGlobalsFrame_armKSASIDTable_update [simp]:
   "armKSGlobalsFrame (armKSASIDTable_update f v) = armKSGlobalsFrame v"
   by (cases v) simp
 
-lemma armKSGlobalsFrame_armKSGlobalPD_update [simp]:
-  "armKSGlobalsFrame (armKSGlobalPD_update f v) = armKSGlobalsFrame v"
+lemma armKSGlobalsFrame_armUSGlobalPT_update [simp]:
+  "armKSGlobalsFrame (armUSGlobalPT_update f v) = armKSGlobalsFrame v"
   by (cases v) simp
 
 lemma armKSGlobalsFrame_armKSHWASIDTable_update [simp]:
@@ -130,8 +130,8 @@ lemma armKSGlobalsFrame_armKSKernelVSpace_update [simp]:
   "armKSGlobalsFrame (armKSKernelVSpace_update f v) = armKSGlobalsFrame v"
   by (cases v) simp
 
-lemma armKSGlobalsFrame_armKSGlobalPTs_update [simp]:
-  "armKSGlobalsFrame (armKSGlobalPTs_update f v) = armKSGlobalsFrame v"
+lemma armKSGlobalsFrame_armKSCurVCPU_update [simp]:
+  "armKSGlobalsFrame (armKSCurVCPU_update f v) = armKSGlobalsFrame v"
   by (cases v) simp
 
 lemma armKSGlobalsFrame_armKSNextASID_update [simp]:
@@ -150,8 +150,8 @@ lemma armKSASIDTable_armKSASIDTable_update [simp]:
   "armKSASIDTable (armKSASIDTable_update f v) = f (armKSASIDTable v)"
   by (cases v) simp
 
-lemma armKSASIDTable_armKSGlobalPD_update [simp]:
-  "armKSASIDTable (armKSGlobalPD_update f v) = armKSASIDTable v"
+lemma armKSASIDTable_armUSGlobalPT_update [simp]:
+  "armKSASIDTable (armUSGlobalPT_update f v) = armKSASIDTable v"
   by (cases v) simp
 
 lemma armKSASIDTable_armKSHWASIDTable_update [simp]:
@@ -162,8 +162,8 @@ lemma armKSASIDTable_armKSKernelVSpace_update [simp]:
   "armKSASIDTable (armKSKernelVSpace_update f v) = armKSASIDTable v"
   by (cases v) simp
 
-lemma armKSASIDTable_armKSGlobalPTs_update [simp]:
-  "armKSASIDTable (armKSGlobalPTs_update f v) = armKSASIDTable v"
+lemma armKSASIDTable_armKSCurVCPU_update [simp]:
+  "armKSASIDTable (armKSCurVCPU_update f v) = armKSASIDTable v"
   by (cases v) simp
 
 lemma armKSASIDTable_armKSNextASID_update [simp]:
@@ -174,36 +174,36 @@ lemma armKSASIDTable_armKSASIDMap_update [simp]:
   "armKSASIDTable (armKSASIDMap_update f v) = armKSASIDTable v"
   by (cases v) simp
 
-lemma armKSGlobalPD_armKSGlobalsFrame_update [simp]:
-  "armKSGlobalPD (armKSGlobalsFrame_update f v) = armKSGlobalPD v"
+lemma armUSGlobalPT_armKSGlobalsFrame_update [simp]:
+  "armUSGlobalPT (armKSGlobalsFrame_update f v) = armUSGlobalPT v"
   by (cases v) simp
 
-lemma armKSGlobalPD_armKSASIDTable_update [simp]:
-  "armKSGlobalPD (armKSASIDTable_update f v) = armKSGlobalPD v"
+lemma armUSGlobalPT_armKSASIDTable_update [simp]:
+  "armUSGlobalPT (armKSASIDTable_update f v) = armUSGlobalPT v"
   by (cases v) simp
 
-lemma armKSGlobalPD_armKSGlobalPD_update [simp]:
-  "armKSGlobalPD (armKSGlobalPD_update f v) = f (armKSGlobalPD v)"
+lemma armUSGlobalPT_armUSGlobalPT_update [simp]:
+  "armUSGlobalPT (armUSGlobalPT_update f v) = f (armUSGlobalPT v)"
   by (cases v) simp
 
-lemma armKSGlobalPD_armKSHWASIDTable_update [simp]:
-  "armKSGlobalPD (armKSHWASIDTable_update f v) = armKSGlobalPD v"
+lemma armUSGlobalPT_armKSHWASIDTable_update [simp]:
+  "armUSGlobalPT (armKSHWASIDTable_update f v) = armUSGlobalPT v"
   by (cases v) simp
 
-lemma armKSGlobalPD_armKSKernelVSpace_update [simp]:
-  "armKSGlobalPD (armKSKernelVSpace_update f v) = armKSGlobalPD v"
+lemma armUSGlobalPT_armKSKernelVSpace_update [simp]:
+  "armUSGlobalPT (armKSKernelVSpace_update f v) = armUSGlobalPT v"
   by (cases v) simp
 
-lemma armKSGlobalPD_armKSGlobalPTs_update [simp]:
-  "armKSGlobalPD (armKSGlobalPTs_update f v) = armKSGlobalPD v"
+lemma armUSGlobalPT_armKSCurVCPU_update [simp]:
+  "armUSGlobalPT (armKSCurVCPU_update f v) = armUSGlobalPT v"
   by (cases v) simp
 
-lemma armKSGlobalPD_armKSNextASID_update [simp]:
-  "armKSGlobalPD (armKSNextASID_update f v) = armKSGlobalPD v"
+lemma armUSGlobalPT_armKSNextASID_update [simp]:
+  "armUSGlobalPT (armKSNextASID_update f v) = armUSGlobalPT v"
   by (cases v) simp
 
-lemma armKSGlobalPD_armKSASIDMap_update [simp]:
-  "armKSGlobalPD (armKSASIDMap_update f v) = armKSGlobalPD v"
+lemma armUSGlobalPT_armKSASIDMap_update [simp]:
+  "armUSGlobalPT (armKSASIDMap_update f v) = armUSGlobalPT v"
   by (cases v) simp
 
 lemma armKSHWASIDTable_armKSGlobalsFrame_update [simp]:
@@ -214,8 +214,8 @@ lemma armKSHWASIDTable_armKSASIDTable_update [simp]:
   "armKSHWASIDTable (armKSASIDTable_update f v) = armKSHWASIDTable v"
   by (cases v) simp
 
-lemma armKSHWASIDTable_armKSGlobalPD_update [simp]:
-  "armKSHWASIDTable (armKSGlobalPD_update f v) = armKSHWASIDTable v"
+lemma armKSHWASIDTable_armUSGlobalPT_update [simp]:
+  "armKSHWASIDTable (armUSGlobalPT_update f v) = armKSHWASIDTable v"
   by (cases v) simp
 
 lemma armKSHWASIDTable_armKSHWASIDTable_update [simp]:
@@ -226,8 +226,8 @@ lemma armKSHWASIDTable_armKSKernelVSpace_update [simp]:
   "armKSHWASIDTable (armKSKernelVSpace_update f v) = armKSHWASIDTable v"
   by (cases v) simp
 
-lemma armKSHWASIDTable_armKSGlobalPTs_update [simp]:
-  "armKSHWASIDTable (armKSGlobalPTs_update f v) = armKSHWASIDTable v"
+lemma armKSHWASIDTable_armKSCurVCPU_update [simp]:
+  "armKSHWASIDTable (armKSCurVCPU_update f v) = armKSHWASIDTable v"
   by (cases v) simp
 
 lemma armKSHWASIDTable_armKSNextASID_update [simp]:
@@ -246,8 +246,8 @@ lemma armKSKernelVSpace_armKSASIDTable_update [simp]:
   "armKSKernelVSpace (armKSASIDTable_update f v) = armKSKernelVSpace v"
   by (cases v) simp
 
-lemma armKSKernelVSpace_armKSGlobalPD_update [simp]:
-  "armKSKernelVSpace (armKSGlobalPD_update f v) = armKSKernelVSpace v"
+lemma armKSKernelVSpace_armUSGlobalPT_update [simp]:
+  "armKSKernelVSpace (armUSGlobalPT_update f v) = armKSKernelVSpace v"
   by (cases v) simp
 
 lemma armKSKernelVSpace_armKSHWASIDTable_update [simp]:
@@ -258,8 +258,8 @@ lemma armKSKernelVSpace_armKSKernelVSpace_update [simp]:
   "armKSKernelVSpace (armKSKernelVSpace_update f v) = f (armKSKernelVSpace v)"
   by (cases v) simp
 
-lemma armKSKernelVSpace_armKSGlobalPTs_update [simp]:
-  "armKSKernelVSpace (armKSGlobalPTs_update f v) = armKSKernelVSpace v"
+lemma armKSKernelVSpace_armKSCurVCPU_update [simp]:
+  "armKSKernelVSpace (armKSCurVCPU_update f v) = armKSKernelVSpace v"
   by (cases v) simp
 
 lemma armKSKernelVSpace_armKSNextASID_update [simp]:
@@ -270,36 +270,36 @@ lemma armKSKernelVSpace_armKSASIDMap_update [simp]:
   "armKSKernelVSpace (armKSASIDMap_update f v) = armKSKernelVSpace v"
   by (cases v) simp
 
-lemma armKSGlobalPTs_armKSGlobalsFrame_update [simp]:
-  "armKSGlobalPTs (armKSGlobalsFrame_update f v) = armKSGlobalPTs v"
+lemma armKSCurVCPU_armKSGlobalsFrame_update [simp]:
+  "armKSCurVCPU (armKSGlobalsFrame_update f v) = armKSCurVCPU v"
   by (cases v) simp
 
-lemma armKSGlobalPTs_armKSASIDTable_update [simp]:
-  "armKSGlobalPTs (armKSASIDTable_update f v) = armKSGlobalPTs v"
+lemma armKSCurVCPU_armKSASIDTable_update [simp]:
+  "armKSCurVCPU (armKSASIDTable_update f v) = armKSCurVCPU v"
   by (cases v) simp
 
-lemma armKSGlobalPTs_armKSGlobalPD_update [simp]:
-  "armKSGlobalPTs (armKSGlobalPD_update f v) = armKSGlobalPTs v"
+lemma armKSCurVCPU_armUSGlobalPT_update [simp]:
+  "armKSCurVCPU (armUSGlobalPT_update f v) = armKSCurVCPU v"
   by (cases v) simp
 
-lemma armKSGlobalPTs_armKSHWASIDTable_update [simp]:
-  "armKSGlobalPTs (armKSHWASIDTable_update f v) = armKSGlobalPTs v"
+lemma armKSCurVCPU_armKSHWASIDTable_update [simp]:
+  "armKSCurVCPU (armKSHWASIDTable_update f v) = armKSCurVCPU v"
   by (cases v) simp
 
-lemma armKSGlobalPTs_armKSKernelVSpace_update [simp]:
-  "armKSGlobalPTs (armKSKernelVSpace_update f v) = armKSGlobalPTs v"
+lemma armKSCurVCPU_armKSKernelVSpace_update [simp]:
+  "armKSCurVCPU (armKSKernelVSpace_update f v) = armKSCurVCPU v"
   by (cases v) simp
 
-lemma armKSGlobalPTs_armKSGlobalPTs_update [simp]:
-  "armKSGlobalPTs (armKSGlobalPTs_update f v) = f (armKSGlobalPTs v)"
+lemma armKSCurVCPU_armKSCurVCPU_update [simp]:
+  "armKSCurVCPU (armKSCurVCPU_update f v) = f (armKSCurVCPU v)"
   by (cases v) simp
 
-lemma armKSGlobalPTs_armKSNextASID_update [simp]:
-  "armKSGlobalPTs (armKSNextASID_update f v) = armKSGlobalPTs v"
+lemma armKSCurVCPU_armKSNextASID_update [simp]:
+  "armKSCurVCPU (armKSNextASID_update f v) = armKSCurVCPU v"
   by (cases v) simp
 
-lemma armKSGlobalPTs_armKSASIDMap_update [simp]:
-  "armKSGlobalPTs (armKSASIDMap_update f v) = armKSGlobalPTs v"
+lemma armKSCurVCPU_armKSASIDMap_update [simp]:
+  "armKSCurVCPU (armKSASIDMap_update f v) = armKSCurVCPU v"
   by (cases v) simp
 
 lemma armKSNextASID_armKSGlobalsFrame_update [simp]:
@@ -310,8 +310,8 @@ lemma armKSNextASID_armKSASIDTable_update [simp]:
   "armKSNextASID (armKSASIDTable_update f v) = armKSNextASID v"
   by (cases v) simp
 
-lemma armKSNextASID_armKSGlobalPD_update [simp]:
-  "armKSNextASID (armKSGlobalPD_update f v) = armKSNextASID v"
+lemma armKSNextASID_armUSGlobalPT_update [simp]:
+  "armKSNextASID (armUSGlobalPT_update f v) = armKSNextASID v"
   by (cases v) simp
 
 lemma armKSNextASID_armKSHWASIDTable_update [simp]:
@@ -322,8 +322,8 @@ lemma armKSNextASID_armKSKernelVSpace_update [simp]:
   "armKSNextASID (armKSKernelVSpace_update f v) = armKSNextASID v"
   by (cases v) simp
 
-lemma armKSNextASID_armKSGlobalPTs_update [simp]:
-  "armKSNextASID (armKSGlobalPTs_update f v) = armKSNextASID v"
+lemma armKSNextASID_armKSCurVCPU_update [simp]:
+  "armKSNextASID (armKSCurVCPU_update f v) = armKSNextASID v"
   by (cases v) simp
 
 lemma armKSNextASID_armKSNextASID_update [simp]:
@@ -342,8 +342,8 @@ lemma armKSASIDMap_armKSASIDTable_update [simp]:
   "armKSASIDMap (armKSASIDTable_update f v) = armKSASIDMap v"
   by (cases v) simp
 
-lemma armKSASIDMap_armKSGlobalPD_update [simp]:
-  "armKSASIDMap (armKSGlobalPD_update f v) = armKSASIDMap v"
+lemma armKSASIDMap_armUSGlobalPT_update [simp]:
+  "armKSASIDMap (armUSGlobalPT_update f v) = armKSASIDMap v"
   by (cases v) simp
 
 lemma armKSASIDMap_armKSHWASIDTable_update [simp]:
@@ -354,8 +354,8 @@ lemma armKSASIDMap_armKSKernelVSpace_update [simp]:
   "armKSASIDMap (armKSKernelVSpace_update f v) = armKSASIDMap v"
   by (cases v) simp
 
-lemma armKSASIDMap_armKSGlobalPTs_update [simp]:
-  "armKSASIDMap (armKSGlobalPTs_update f v) = armKSASIDMap v"
+lemma armKSASIDMap_armKSCurVCPU_update [simp]:
+  "armKSASIDMap (armKSCurVCPU_update f v) = armKSASIDMap v"
   by (cases v) simp
 
 lemma armKSASIDMap_armKSNextASID_update [simp]:
@@ -374,25 +374,19 @@ where
         alignToBits = (\<lambda>  addr b. (((addr - 1) `~shiftR~` b) + 1) `~shiftL~` b);
         globalsFrame = data_start `~alignToBits~` pageBits;
         globalsFrameTop = globalsFrame + bit pageBits;
-        globalPTs = globalsFrameTop `~alignToBits~` pageBits;
-        globalPTsTop = globalPTs + bit pageBits;
-        globalPD = globalPTsTop `~alignToBits~` pdBits;
-        globalPDTop = globalPD + bit pdBits;
-        frames = globalsFrame #
-            [globalPTs, globalPTs + bit pageBits  .e.  globalPTsTop - 1] @
-            [globalPD, globalPD + bit pageBits  .e.  globalPDTop - 1];
+        frames = error [];
         state = ARMKernelState_ \<lparr>
             armKSGlobalsFrame= ptrFromPAddr globalsFrame,
             armKSASIDTable= funPartialArray (const Nothing) (0, (1 `~shiftL~` asidHighBits) - 1),
             armKSHWASIDTable= funArray (const Nothing),
             armKSNextASID= minBound,
             armKSASIDMap= funPartialArray (const Nothing) asidRange,
-            armKSGlobalPD= ptrFromPAddr globalPD,
-            armKSGlobalPTs= map ptrFromPAddr
-                [globalPTs, globalPTs + bit ptBits  .e.  globalPTsTop- 1],
             armKSKernelVSpace=
                 (\<lambda> vref. if vref < mask 20 then ArmVSpaceKernelWindow
-                                            else ArmVSpaceInvalidRegion) \<rparr>
+                                            else ArmVSpaceInvalidRegion),
+            armUSGlobalPT= error [],
+            armKSCurVCPU= error []
+            \<rparr>
     in
                                    (state, frames)"
 

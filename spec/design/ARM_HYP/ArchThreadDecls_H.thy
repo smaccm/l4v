@@ -21,7 +21,7 @@ imports
   "../KernelInitMonad_H"
 begin
 
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 consts'
 switchToThread :: "machine_word \<Rightarrow> unit kernel"

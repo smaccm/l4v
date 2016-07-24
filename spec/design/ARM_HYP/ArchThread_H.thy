@@ -16,7 +16,7 @@ imports
   "../TCBDecls_H"
   ArchVSpaceDecls_H
 begin
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 defs switchToThread_def:
 "switchToThread tcb\<equiv> (do
@@ -24,7 +24,7 @@ defs switchToThread_def:
     globals \<leftarrow> gets $ armKSGlobalsFrame \<circ> ksArchState;
     bufferPtr \<leftarrow> threadGet tcbIPCBuffer tcb;
     storeWordUser globals $ fromVPtr bufferPtr;
-    doMachineOp $ ARM.clearExMonitor
+    doMachineOp $ ARM_HYP.clearExMonitor
 od)"
 
 defs configureIdleThread_def:

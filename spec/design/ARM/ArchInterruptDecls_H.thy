@@ -23,6 +23,12 @@ performIRQControl :: "irqcontrol_invocation \<Rightarrow> unit kernel_p"
 consts'
 checkIRQ :: "machine_word \<Rightarrow> ( syscall_error , unit ) kernel_f"
 
+consts'
+handleReservedIRQ :: "irq \<Rightarrow> unit kernel"
+
+consts'
+initInterruptController :: "unit kernel"
+
 
 end
 

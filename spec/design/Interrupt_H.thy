@@ -24,6 +24,8 @@ requalify_consts
   checkIRQ
   decodeIRQControlInvocation
   performIRQControl
+  initInterruptController
+  handleReservedIRQ
 
 context begin global_naming global
 requalify_consts
@@ -132,6 +134,7 @@ defs initInterruptController_def:
         setInterruptState $ InterruptState (ptrFromPAddr frame) irqTable;
         timerIRQ \<leftarrow> doMachineOp configureTimer;
         setIRQState IRQTimer timerIRQ;
+        Arch.initInterruptController;
         slot \<leftarrow> locateSlotCap rootCNCap biCapIRQC;
         insertInitCap slot IRQControlCap
     od);
@@ -163,6 +166,7 @@ defs handleInterrupt_def:
               timerTick;
               doMachineOp resetTimer
           od)
+          | IRQReserved \<Rightarrow>   Arch.handleReservedIRQ irq
           | IRQInactive \<Rightarrow>   haskell_fail $ [] @ show irq
           );
       doMachineOp $ ackInterrupt irq

@@ -19,7 +19,7 @@ imports
   "../PSpaceFuns_H"
   ArchObjInsts_H
 begin
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 datatype page_table_invocation =
     PageTableUnmap arch_capability machine_word
@@ -601,6 +601,16 @@ lemma assignASID_assignASID_update [simp]:
   "assignASID (assignASID_update f v) = f (assignASID v)"
   by (cases v) simp
 
+type_synonym hyper_reg = "word32"
+
+type_synonym hyper_reg_val = "word32"
+
+datatype vcpuinvocation =
+    VCPUSetTCB machine_word machine_word
+  | VCPUInjectIRQ machine_word word8 word8 word8 word8 word16
+  | VCPUReadRegister machine_word hyper_reg
+  | VCPUWriteRegister machine_word hyper_reg hyper_reg_val
+
 
 datatype invocation =
     InvokePageTable page_table_invocation
@@ -608,6 +618,7 @@ datatype invocation =
   | InvokePage page_invocation
   | InvokeASIDControl asidcontrol_invocation
   | InvokeASIDPool asidpool_invocation
+  | InvokeVCPU vcpuinvocation
 
 datatype irqcontrol_invocation =
     ARMNoArchIRQControl

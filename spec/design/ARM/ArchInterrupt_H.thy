@@ -22,6 +22,12 @@ defs performIRQControl_def:
 defs checkIRQ_def:
 "checkIRQ irq\<equiv> rangeCheck irq (fromEnum minIRQ) (fromEnum maxIRQ)"
 
+defs handleReservedIRQ_def:
+"handleReservedIRQ irq\<equiv> return ()"
+
+defs initInterruptController_def:
+"initInterruptController\<equiv> return ()"
+
 
 end
 end

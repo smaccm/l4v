@@ -90,6 +90,11 @@ defs handleEvent_def:
     handleVMFault thread faultType `~catchFailure~` handleFault thread;
     return ()
   od)
+  | (HypervisorEvent hypType) \<Rightarrow>    withoutPreemption $ (do
+    thread \<leftarrow> getCurThread;
+    handleHypervisorFault thread hypType;
+    return ()
+  od)
   )"
 
 defs handleSend_def:

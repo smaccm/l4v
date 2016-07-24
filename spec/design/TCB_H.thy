@@ -32,6 +32,7 @@ requalify_consts
   performTransfer
   msgInfoRegister
   msgRegisters
+  asUser
 end
 
 defs decodeTCBInvocation_def:
@@ -552,14 +553,5 @@ defs threadSet_def:
         setObject tptr $ f tcb
 od)"
 
-
-
-defs asUser_def:
-"asUser tptr f\<equiv> (do
-        uc \<leftarrow> threadGet tcbContext tptr;
-        (a, uc') \<leftarrow> select_f (f uc);
-        threadSet (\<lambda> tcb. tcb \<lparr> tcbContext := uc' \<rparr>) tptr;
-        return a
-od)"
 
 end

@@ -103,7 +103,7 @@ where
   )"
 
 
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 datatype object_type =
     APIObjectType apiobject_type
@@ -113,6 +113,7 @@ datatype object_type =
   | SuperSectionObject
   | PageTableObject
   | PageDirectoryObject
+  | VCPUObject
 
 definition
 "fromAPIType \<equiv> APIObjectType"
@@ -136,6 +137,7 @@ where
   | SuperSectionObject \<Rightarrow>    pageBitsForSize ARMSuperSection
   | PageTableObject \<Rightarrow>    ptBits
   | PageDirectoryObject \<Rightarrow>    pdBits
+  | VCPUObject \<Rightarrow>    vcpuBits
   | (APIObjectType apiObjectType) \<Rightarrow>    apiGetObjectSize apiObjectType magnitude
   )"
 
@@ -144,8 +146,8 @@ end
 
 text {* object\_type instance proofs *}
 
-qualify ARM_H (in Arch)
-instantiation ARM_H.object_type :: enum
+qualify ARM_HYP_H (in Arch)
+instantiation ARM_HYP_H.object_type :: enum
 begin
 interpretation Arch .
 definition
@@ -156,7 +158,8 @@ definition
       SectionObject,
       SuperSectionObject,
       PageTableObject,
-      PageDirectoryObject
+      PageDirectoryObject,
+      VCPUObject
     ]"
 
 definition
@@ -176,7 +179,7 @@ definition
 end
 
 
-instantiation ARM_H.object_type :: enum_alt
+instantiation ARM_HYP_H.object_type :: enum_alt
 begin
 interpretation Arch .
 definition
@@ -185,7 +188,7 @@ definition
 instance ..
 end
 
-instantiation ARM_H.object_type :: enumeration_both
+instantiation ARM_HYP_H.object_type :: enumeration_both
 begin
 interpretation Arch .
 instance by (intro_classes, simp add: enum_alt_object_type)

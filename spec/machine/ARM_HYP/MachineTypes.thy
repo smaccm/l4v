@@ -148,12 +148,16 @@ definition
 definition
 "syscallMessage \<equiv> [R0  .e.  R7] @ [FaultInstruction, SP, LR, CPSR]"
 
+definition
+"elr_hyp \<equiv> LR_svc"
+
 defs initContext_def:
 "initContext\<equiv> [(CPSR,0x150)]"
 
 defs sanitiseRegister_def:
 "sanitiseRegister x0 v\<equiv> (case x0 of
-    CPSR \<Rightarrow>    (v && 0xf8000000) || 0x150
+    CPSR \<Rightarrow>   
+    if v && 0x1f = 0x1f then v else (v && 0xf8000000) || 0x150
   | _ \<Rightarrow>    v
   )"
 
@@ -297,8 +301,8 @@ where
 "pageBitsForSize x0\<equiv> (case x0 of
     ARMSmallPage \<Rightarrow>    12
   | ARMLargePage \<Rightarrow>    16
-  | ARMSection \<Rightarrow>    20
-  | ARMSuperSection \<Rightarrow>    24
+  | ARMSection \<Rightarrow>    21
+  | ARMSuperSection \<Rightarrow>    25
   )"
 
 

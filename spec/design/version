@@ -1,17 +1,61 @@
 Built from git repo at /Users/miki/verification/l4v/spec/haskell by miki
 
 Generated from changeset:
-28a5338 arm-hyp haskell: fix compile for build-arm-hyp-nosmmu
+6791fac arm-hyp: adjusting includes and namespaces in skeletons
 
 
 Warning - uncomitted changes used:
+ M ../design/ARM/ArchInterruptDecls_H.thy
+ M ../design/ARM/ArchInterrupt_H.thy
+ M ../design/ARM/ArchStructures_H.thy
+ M ../design/ARM/ArchTCB_H.thy
+ M ../design/ARM/ArchVSpace_H.thy
+ M ../design/ARM_HYP/ArchInterruptDecls_H.thy
+ M ../design/ARM_HYP/ArchInterrupt_H.thy
+ M ../design/ARM_HYP/ArchInvocationLabels_H.thy
+ M ../design/ARM_HYP/ArchLabelFuns_H.thy
+ M ../design/ARM_HYP/ArchObjInsts_H.thy
+ M ../design/ARM_HYP/ArchRetypeDecls_H.thy
+ M ../design/ARM_HYP/ArchRetype_H.thy
+ M ../design/ARM_HYP/ArchStateData_H.thy
+ M ../design/ARM_HYP/ArchStructures_H.thy
+ M ../design/ARM_HYP/ArchTCB_H.thy
+ M ../design/ARM_HYP/ArchThreadDecls_H.thy
+ M ../design/ARM_HYP/ArchThread_H.thy
+ M ../design/ARM_HYP/ArchTypes_H.thy
+ M ../design/ARM_HYP/ArchVSpaceDecls_H.thy
+ M ../design/ARM_HYP/ArchVSpace_H.thy
+ M ../design/ARM_HYP/Arch_Structs_B.thy
  M ../design/ARM_HYP/Hardware_H.thy
  M ../design/ARM_HYP/RegisterSet_H.thy
  M ../design/ARM_HYP/State_H.thy
- M ../design/Event_H.thy
+ M ../design/FaultHandler_H.thy
+ M ../design/Fault_H.thy
+ M ../design/Interrupt_H.thy
+ M ../design/Kernel_H.thy
+ M ../design/ObjectInstances_H.thy
+ M ../design/Structures_H.thy
+ M ../design/Syscall_H.thy
+ M ../design/TCBDecls_H.thy
+ M ../design/TCB_H.thy
  M ../design/version
- M ../machine/ARM/Platform.thy
- M ../machine/ARM_HYP/Platform.thy
+ M ../machine/ARM/MachineTypes.thy
+ M ../machine/ARM_HYP/MachineTypes.thy
+ M ../../tools/haskell-translator/caseconvs
  M ../../tools/haskell-translator/make_spec.sh
+?? ../../#memo#
+?? ../../.#memo
+?? ../../files_to_fix
+?? ../../hs_err_pid99493.log
 ?? ../../memo
 ?? ../../proof/invariant-abstract/temp.thy
+?? ../design/ARM/ArchFaultHandler_H.thy
+?? ../design/ARM/ArchFault_H.thy
+?? ../design/ARM/ArchHypervisorDecls_H.thy
+?? ../design/ARM/ArchHypervisor_H.thy
+?? ../design/ARM_HYP/ArchFaultHandler_H.thy
+?? ../design/ARM_HYP/ArchFault_H.thy
+?? ../design/ARM_HYP/ArchHypervisor_H.thy
+?? ../design/Hypervisor_H.thy
+?? ../design/skel/ARM/ArchHypervisorDecls_H.thy
+?? ../../tools/haskell-translator/log

@@ -8,14 +8,20 @@
  * @TAG(GD_GPL)
  *)
 
-chapter "Kernel"
+(* 
+	Hypervisor code.
+*)
 
-theory Kernel_H
+theory Hypervisor_H
 imports
-  KernelInit_H
-  Thread_H
-  FaultHandler_H
-  CSpace_H
-  Hypervisor_H
+  CNode_H
+  "./$L4V_ARCH/ArchHypervisor_H"
+  KernelInitMonad_H
 begin
+
+context begin interpretation Arch .
+requalify_consts
+  handleHypervisorFault
+end
+
 end

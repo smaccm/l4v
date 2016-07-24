@@ -18,8 +18,6 @@ imports
 begin
 context Arch begin global_naming ARM
 
-(* !!! Generated File !!! Skeleton in ../../design/skel-m/ARM/MachineTypes.thy *)
-
 text {*
   An implementation of the machine's types, defining register set
   and some observable machine state.
@@ -285,6 +283,9 @@ datatype vmfault_type =
     ARMDataAbort
   | ARMPrefetchAbort
 
+datatype hyp_fault_type =
+    ARMNoHypFaults
+
 definition
 pageBits :: "nat"
 where
@@ -356,5 +357,8 @@ end
 
 (*>*)
 end_qualify
+context Arch begin global_naming ARM
 
+
+end
 end
