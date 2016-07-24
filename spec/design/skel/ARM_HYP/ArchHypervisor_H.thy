@@ -21,8 +21,10 @@ begin
 context Arch begin global_naming ARM_HYP_H
 
 
-#INCLUDE_HASKELL SEL4/Kernel/Hypervisor/ARM_HYP.lhs CONTEXT ARM_HYP_H decls_only
-#INCLUDE_HASKELL SEL4/Kernel/Hypervisor/ARM_HYP.lhs CONTEXT ARM_HYP_H bodies_only
+#INCLUDE_HASKELL SEL4/Kernel/Hypervisor/ARM_HYP.lhs Arch= CONTEXT ARM_HYP_H decls_only
+
+defs handleHypervisorFault_def:
+"handleHypervisorFault arg1 hyp \<equiv> case hyp of ARMNoHypFaults \<Rightarrow> haskell_fail []"
 
 
 end
