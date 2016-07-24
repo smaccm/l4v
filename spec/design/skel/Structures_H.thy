@@ -32,7 +32,6 @@ requalify_types
   arch_kernel_object
   asid
   arch_tcb
-  vcpu
 
 requalify_consts
   archObjSize
