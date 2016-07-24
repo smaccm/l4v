@@ -18,8 +18,6 @@ imports
 begin
 context Arch begin global_naming ARM
 
-(* !!! Generated File !!! Skeleton in ../../design/skel-m/ARM/MachineTypes.thy *)
-
 text {*
   An implementation of the machine's types, defining register set
   and some observable machine state.
@@ -131,7 +129,7 @@ definition
 
 
 (* Machine/Hardware/ARM.lhs - hardware_asid, vmfault_type and vmpage_size *)
-#INCLUDE_HASKELL SEL4/Machine/Hardware/ARM.lhs CONTEXT ARM ONLY HardwareASID VMFaultType VMPageSize pageBits pageBitsForSize
+#INCLUDE_HASKELL SEL4/Machine/Hardware/ARM.lhs CONTEXT ARM ONLY HardwareASID VMFaultType VMPageSize HypFaultType pageBits pageBitsForSize
 
 end
 
@@ -141,7 +139,7 @@ end
 
 context Arch begin global_naming ARM
 
-#INCLUDE_HASKELL SEL4/Machine/Hardware/ARM.lhs CONTEXT ARM instanceproofs ONLY HardwareASID VMFaultType VMPageSize
+#INCLUDE_HASKELL SEL4/Machine/Hardware/ARM.lhs CONTEXT ARM instanceproofs ONLY HardwareASID VMFaultType VMPageSize HypFaultType
 
 end
 end
