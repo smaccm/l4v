@@ -35,4 +35,11 @@ where
 | "archTypeOf (KOASIDPool e) = ASIDPoolT"
 
 end
+
+context begin interpretation Arch .
+
+requalify_types
+  vcpu
+
+end
 end

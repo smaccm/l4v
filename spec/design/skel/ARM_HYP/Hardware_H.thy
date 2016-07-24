@@ -27,7 +27,7 @@ context Arch begin global_naming ARM_HYP_H
 
 #INCLUDE_HASKELL SEL4/Machine/Hardware/ARM_HYP.lhs CONTEXT ARM_HYP_H instanceproofs NOT HardwareASID VMFaultType HypFaultType VMPageSize
 
-#INCLUDE_HASKELL SEL4/Machine/Hardware/ARM_HYP.lhs CONTEXT ARM_HYP_H ONLY wordFromPDE wordFromPTE
+#INCLUDE_HASKELL SEL4/Machine/Hardware/ARM_HYP.lhs CONTEXT ARM_HYP_H ONLY wordsFromPDE wordsFromPTE
 
 end
 end
