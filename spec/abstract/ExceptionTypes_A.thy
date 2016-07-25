@@ -39,7 +39,6 @@ datatype lookup_failure
 
 datatype fault
          = CapFault obj_ref bool lookup_failure
-         | VMFault data "data list"
          | UnknownSyscallException data
          | UserException data data
          | ArchFault arch_fault

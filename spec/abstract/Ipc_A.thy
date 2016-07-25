@@ -15,7 +15,7 @@ Specification of Inter-Process Communication.
 chapter "IPC"
 
 theory Ipc_A
-imports "$L4V_ARCH/ArchTcb_A"
+imports "$L4V_ARCH/ArchFault_A"
 begin
 
 context begin interpretation Arch .
@@ -24,6 +24,8 @@ requalify_consts
   lookup_ipc_buffer
   set_mrs
   get_mrs
+  make_arch_fault_msg
+  handle_arch_fault_reply
 end
 
 section {* Getting and setting the message info register. *}
@@ -150,19 +152,15 @@ where
      pc \<leftarrow> as_user thread getRestartPC;
      return (1, pc # cptr # (if rp then 1 else 0) # msg_from_lookup_failure lf)
    od)"
-| "make_fault_msg (VMFault vptr arch) thread = (do
-     pc \<leftarrow> as_user thread getRestartPC;
-     return (2, pc # vptr # arch)
-   od)"
 | "make_fault_msg (UnknownSyscallException n) thread = (do
      msg \<leftarrow> as_user thread $ mapM getRegister syscallMessage;
-     return (3, msg @ [n])
+     return (2, msg @ [n])
    od)"
 | "make_fault_msg (UserException exception code) thread = (do
      msg \<leftarrow> as_user thread $ mapM getRegister exceptionMessage;
-     return (4, msg @ [exception, code])
+     return (3, msg @ [exception, code])
    od)"
-| "make_fault_msg (ArchFault v) b = undefined " (* arch_fault *)
+| "make_fault_msg (ArchFault af) thread = make_arch_fault_msg af thread " (* arch_fault *)
 
 text {* React to a fault reply. The reply message is interpreted in a manner
 that depends on the type of the original fault. For some fault types a thread
@@ -174,7 +172,6 @@ fun
                          data \<Rightarrow> data list \<Rightarrow> (bool,'z::state_ext) s_monad"
 where
   "handle_fault_reply (CapFault cptr rp lf) thread x y = return True"
-| "handle_fault_reply (VMFault vptr arch) thread x y = return True"
 | "handle_fault_reply (UnknownSyscallException n) thread label msg = do
      as_user thread $ zipWithM_x
          (\<lambda>r v. set_register r $ sanitiseRegister r v)
@@ -187,7 +184,8 @@ where
          exceptionMessage msg;
      return (label = 0)
    od"
-| " handle_fault_reply (ArchFault v) b c d = undefined" (* arch_fault *)
+| " handle_fault_reply (ArchFault af) thread label msg = 
+    handle_arch_fault_reply af thread label msg" (* arch_fault *)
 
 text {* Transfer a fault message from a faulting thread to its supervisor. *}
 definition

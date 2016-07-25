@@ -135,7 +135,8 @@ definition
  "syscall_message \<equiv> syscallMessage"
 
 (* FIXME: arch_fault *)
-datatype arch_fault = DummyArchFault
+datatype arch_fault
+    = VMFault vspace_ref "machine_word list"
 
 end
 
