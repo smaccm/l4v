@@ -474,6 +474,7 @@ datatype irq_state =
    IRQInactive
  | IRQSignal
  | IRQTimer
+ | IRQReserved
 
 text {* The kernel state includes a heap, a capability derivation tree
 (CDT), a bitmap used to determine if a capability is the original
