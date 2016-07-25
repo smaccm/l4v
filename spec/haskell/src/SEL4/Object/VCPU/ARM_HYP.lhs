@@ -73,8 +73,9 @@ It is not possible to dissociate a VCPU and a TCB by using SetTCB. Final outcome
 > associateVCPUTCB :: PPtr TCB -> PPtr VCPU -> Kernel ()
 > associateVCPUTCB tcbPtr vcpuPtr = do
 >     tcbVCPU <- archThreadGet atcbVCPUPtr tcbPtr
->     case tcbVCPU of Just ptr -> dissociateVCPUTCB tcbPtr ptr
->                     _ -> return ()
+>     case tcbVCPU of
+>       Just ptr -> dissociateVCPUTCB tcbPtr ptr
+>       _ -> return ()
 >     vcpu <- getObject vcpuPtr
 >     case (vcpuTCBPtr vcpu) of
 >         Just ptr -> dissociateVCPUTCB ptr vcpuPtr
