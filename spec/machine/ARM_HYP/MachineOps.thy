@@ -135,6 +135,9 @@ definition
   setHardwareASID:: "hardware_asid \<Rightarrow> unit machine_monad"
 where "setHardwareASID a \<equiv> machine_op_lift (setHardwareASID_impl a)"
 
+definition
+  writeContextIDAndPD :: "hardware_asid \<Rightarrow> machine_word \<Rightarrow> unit machine_monad"
+  where "writeContextIDAndPD \<equiv> undefined" (* FIXME ARMHYP machine callback unimplemented *)
 
 (* Memory Barriers *)
 
@@ -312,6 +315,18 @@ definition
 definition
   getFAR :: "machine_word machine_monad"
   where "getFAR \<equiv> gets FAR_val"
+
+definition
+  getHSR :: "machine_word machine_monad"
+  where "getHSR \<equiv> undefined" (* FIXME ARMHYP machine callback unimplemented *)
+
+definition
+  getHDFAR :: "machine_word machine_monad"
+  where "getHDFAR \<equiv> undefined" (* FIXME ARMHYP machine callback unimplemented *)
+
+definition
+  addressTranslateS1CPR :: "machine_word \<Rightarrow> machine_word machine_monad"
+  where "addressTranslateS1CPR \<equiv> undefined"  (* FIXME ARMHYP machine callback unimplemented *)
 
 definition
   debugPrint :: "unit list \<Rightarrow> unit machine_monad"
