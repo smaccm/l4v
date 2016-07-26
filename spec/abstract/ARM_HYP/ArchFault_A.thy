@@ -20,16 +20,18 @@ begin
 
 context Arch begin global_naming ARM_HYP_A
 
-definition make_arch_fault_msg :: "arch_fault \<Rightarrow> obj_ref \<Rightarrow> (data \<times> data list,'z::state_ext) s_monad"
+fun make_arch_fault_msg :: "arch_fault \<Rightarrow> obj_ref \<Rightarrow> (data \<times> data list,'z::state_ext) s_monad"
 where
- "make_arch_fault_msg (VMFault vptr archData) thread \<equiv> do
-     pc \<leftarrow> as_ser thread getRestartPC;
-     return (4, pc # vptr # archData)"
+  "make_arch_fault_msg (VMFault vptr archData) thread = do
+     pc \<leftarrow> as_user thread getRestartPC;
+     return (4, pc # vptr # archData) od"
+| "make_arch_fault_msg (VCPUFault hsr) thread = return (5, [hsr])"
+| "make_arch_fault_msg (VGICMaintenance archData) thread = return (6, archData)" (* FIXME ARMHYP check vgic index here? *)
 
-definition 
+definition
   handle_arch_fault_reply :: "arch_fault \<Rightarrow> obj_ref \<Rightarrow> data \<Rightarrow> data list \<Rightarrow> (bool,'z::state_ext) s_monad"
 where
-  "handle_arch_fault_reply (VMFault vmf) thread x y = return True"
+  "handle_arch_fault_reply af thread x y = return True"
 
 
 end

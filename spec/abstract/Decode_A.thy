@@ -24,7 +24,7 @@ begin
 context begin interpretation Arch .
 
 requalify_consts
- ArchDefaultExtraRegisters
+ ARMNoExtraRegisters
  check_valid_ipc_buffer
  is_valid_vtable_root
  arch_decode_irq_control_invocation 
@@ -164,7 +164,7 @@ where
     p \<leftarrow> case cap of ThreadCap p \<Rightarrow> returnOk p;
     self \<leftarrow> liftE $ gets cur_thread;
     whenE (p = self) $ throwError IllegalOperation;
-    returnOk $ ReadRegisters p (flags !! 0) n ArchDefaultExtraRegisters
+    returnOk $ ReadRegisters p (flags !! 0) n ARMNoExtraRegisters
   odE
 | _ \<Rightarrow> throwError TruncatedMessage"
 
@@ -185,7 +185,7 @@ where
     returnOk $ CopyRegisters p src_tcb
                              suspend_source resume_target
                              transfer_frame transfer_integer 
-                             ArchDefaultExtraRegisters
+                             ARMNoExtraRegisters
   odE
 | _ \<Rightarrow>  throwError TruncatedMessage"
 
@@ -200,7 +200,7 @@ where
     self \<leftarrow> liftE $ gets cur_thread;
     whenE (p = self) $ throwError IllegalOperation;
     returnOk $ WriteRegisters p (flags !! 0)
-               (take (unat n) values) ArchDefaultExtraRegisters
+               (take (unat n) values) ARMNoExtraRegisters
   odE
 | _ \<Rightarrow> throwError TruncatedMessage"
 
