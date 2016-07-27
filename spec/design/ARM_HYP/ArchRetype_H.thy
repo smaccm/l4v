@@ -63,11 +63,20 @@ defs finaliseCap_def:
     unmapPageTable a v ptr;
     return NullCap
   od)
-  | ((PageCap ptr _ s (Some (a, v))), _) \<Rightarrow>    (do
-        unmapPage s a v ptr;
-        return NullCap
+  else if isPageCap cap \<and> capVPMappedAddress cap \<noteq> None
+  then let (a, v) = the (capVPMappedAddress cap); s = capVPSize cap; ptr = capVPBasePtr cap
+  in  
+           (do
+              unmapPage s a v ptr;
+              return NullCap
+           od)
+  else if isVCPUCap cap \<and> bl
+  then let vcpu = capVCPUPtr cap
+  in   (do
+    vcpuFinalise vcpu;
+    return NullCap
   od)
-  | (_, _) \<Rightarrow>    return NullCap
+  else   return NullCap
   )"
 
 defs resetMemMapping_def:
@@ -148,6 +157,13 @@ defs recycleCap_def:
         modify (\<lambda> s. s \<lparr>
             ksArchState := (ksArchState s) \<lparr> armKSASIDTable := asidTable' \<rparr>\<rparr>)
     od);
+    return cap
+  od)
+  else if isVCPUCap cap
+  then let vcpu = capVCPUPtr cap
+  in   (do
+    vcpuFinalise vcpu;
+    setObject vcpu (makeObject ::vcpu);
     return cap
   od)
   else undefined
@@ -267,6 +283,10 @@ defs createObject_def:
                       (VPtr $ fromPPtr regionBase + regionSize - 1)
                       (addrFromPPtr regionBase);
             return $ PageDirectoryCap (pointerCast regionBase) Nothing
+        od)
+        | Arch.Type.VCPUObject \<Rightarrow>  (do
+            placeNewObject regionBase (makeObject ::vcpu) 0;
+            return $ VCPUCap (PPtr $ fromPPtr regionBase)
         od)
         )"
 

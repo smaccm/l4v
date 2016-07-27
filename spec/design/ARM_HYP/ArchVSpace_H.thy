@@ -17,6 +17,7 @@ imports
   "../CNode_H"
   "../KI_Decls_H"
   ArchVSpaceDecls_H
+  ArchHypervisor_H
 begin
 context Arch begin global_naming ARM_H
 
@@ -758,7 +759,11 @@ defs setVMRoot_def:
                 whenE (pd \<noteq> pd') $ (
                     throw InvalidRoot
                 );
-                withoutFailure $ armv_contextSwitch pd asid
+                withoutFailure $ (do
+                    armv_contextSwitch pd asid;
+                    tcbobj \<leftarrow> getObject tcb;
+                    vcpuSwitch (atcbVCPUPtr $ tcbArch tcbobj)
+                od)
               odE)
             | _ \<Rightarrow>   throw InvalidRoot)
             )
@@ -1015,6 +1020,9 @@ defs resolveVAddr_def:
         )
 od)"
 
+defs isIOSpaceFrameCap_def:
+"isIOSpaceFrameCap arg1 \<equiv> False"
+
 defs decodeARMMMUInvocation_def:
 "decodeARMMMUInvocation label args x2 cte x4 extraCaps\<equiv> (let cap = x4 in
   if isPageDirectoryCap cap
@@ -1130,6 +1138,7 @@ defs decodeARMMMUInvocation_def:
           odE)
         | (ArchInvocationLabel ARMPageMap, _, _) \<Rightarrow>   throw TruncatedMessage
         | (ArchInvocationLabel ARMPageRemap, rightsMask#attr#_, (pdCap, _)#_) \<Rightarrow>   (doE
+            whenE (isIOSpaceFrameCap cap) $ throw IllegalOperation;
             (pd,asid) \<leftarrow> (case pdCap of
                   ArchObjectCap (PageDirectoryCap pd (Some asid)) \<Rightarrow>   returnOk (pd,asid)
                 | _ \<Rightarrow>   throw $ InvalidCapability 1

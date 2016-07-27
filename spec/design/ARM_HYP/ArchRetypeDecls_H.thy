@@ -601,6 +601,16 @@ lemma assignASID_assignASID_update [simp]:
   "assignASID (assignASID_update f v) = f (assignASID v)"
   by (cases v) simp
 
+type_synonym hyper_reg = "nat"
+
+type_synonym hyper_reg_val = "machine_word"
+
+datatype vcpuinvocation =
+    VCPUSetTCB machine_word machine_word
+  | VCPUInjectIRQ machine_word nat virq
+  | VCPUReadRegister machine_word hyper_reg
+  | VCPUWriteRegister machine_word hyper_reg hyper_reg_val
+
 
 datatype invocation =
     InvokePageTable page_table_invocation

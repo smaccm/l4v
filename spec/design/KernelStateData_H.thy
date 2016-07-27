@@ -158,6 +158,11 @@ where
                                         f (ksWorkUnitsCompleted ks) \<rparr>)"
 
 definition
+modifyArchState :: "(Arch.kernel_state \<Rightarrow> Arch.kernel_state) \<Rightarrow> unit kernel"
+where
+"modifyArchState f\<equiv> modify (\<lambda> s. s \<lparr> ksArchState := f (ksArchState s) \<rparr>)"
+
+definition
 curDomain :: "domain kernel"
 where
 "curDomain \<equiv> gets ksCurDomain"

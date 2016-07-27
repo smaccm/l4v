@@ -165,6 +165,36 @@ instance
 
 end
 
+instantiation ARM_HYP_H.vcpu :: pspace_storable
+begin
+interpretation Arch .
+
+(* vcpu extra instance defs *)
+
+
+definition
+  makeObject_vcpu: "(makeObject :: vcpu)  \<equiv> makeVCPUObject"
+
+definition
+  loadObject_vcpu[simp]:
+ "(loadObject p q n obj) :: vcpu kernel \<equiv>
+    loadObject_default p q n obj"
+
+definition
+  updateObject_vcpu[simp]:
+ "updateObject (val :: vcpu) \<equiv>
+    updateObject_default val"
+
+
+instance
+  apply (intro_classes)
+  apply (clarsimp simp add: updateObject_default_def in_monad projectKO_opts_defs
+                            projectKO_eq2
+                     split: kernel_object.splits arch_kernel_object.splits)
+  done
+
+end
+
 (* This is hard coded since using funArray in haskell for 2^32 bound is risky *)
 
 instantiation ARM_H.asidpool :: pspace_storable

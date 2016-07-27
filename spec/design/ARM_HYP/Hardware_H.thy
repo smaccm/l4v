@@ -356,14 +356,139 @@ where
 "clearExMonitor\<equiv> return ()"
 
 definition
-pdBits :: "nat"
+getHSR :: "machine_word machine_monad"
+where
+"getHSR \<equiv> error []"
+
+definition
+setHCR :: "machine_word \<Rightarrow> unit machine_monad"
+where
+"setHCR _hcr \<equiv> error []"
+
+definition
+getHDFAR :: "vptr machine_monad"
 where
 "pdBits \<equiv> pageBits + 2"
 
 definition
 ptBits :: "nat"
 where
-"ptBits \<equiv> pageBits - 2"
+"addressTranslateS1CPR \<equiv> error []"
+
+definition
+getSCTLR :: "machine_word machine_monad"
+where
+"getSCTLR \<equiv> error []"
+
+definition
+setSCTLR :: "machine_word \<Rightarrow> unit machine_monad"
+where
+"setSCTLR _sctlr \<equiv> error []"
+
+definition
+getACTLR :: "machine_word machine_monad"
+where
+"getACTLR \<equiv> error []"
+
+definition
+setACTLR :: "machine_word \<Rightarrow> unit machine_monad"
+where
+"setACTLR _actlr \<equiv> error []"
+
+definition
+"pteBits\<equiv> (3 ::nat)"
+
+definition
+"pdeBits\<equiv> (3 ::nat)"
+
+definition
+"pdBits\<equiv> (11 ::nat) + pdeBits"
+
+definition
+"ptBits\<equiv> (9 ::nat) + pteBits"
+
+definition
+"vcpuBits \<equiv> pageBits"
+
+definition
+pteSize :: "nat"
+where
+"pteSize \<equiv> bit pteBits"
+
+definition
+pdeSize :: "nat"
+where
+"pdeSize \<equiv> bit pdeBits"
+
+definition
+vgicIRQActive :: "machine_word"
+where
+"vgicIRQActive \<equiv> 2 `~shiftL~` 28"
+
+definition
+vgicIRQMask :: "machine_word"
+where
+"vgicIRQMask \<equiv> 3 `~shiftL~` 28"
+
+definition
+get_gic_vcpu_ctrl_hcr :: "machine_word machine_monad"
+where
+"get_gic_vcpu_ctrl_hcr \<equiv> error []"
+
+definition
+set_gic_vcpu_ctrl_hcr :: "machine_word \<Rightarrow> unit machine_monad"
+where
+"set_gic_vcpu_ctrl_hcr \<equiv> error []"
+
+definition
+get_gic_vcpu_ctrl_vmcr :: "machine_word machine_monad"
+where
+"get_gic_vcpu_ctrl_vmcr \<equiv> error []"
+
+definition
+set_gic_vcpu_ctrl_vmcr :: "machine_word \<Rightarrow> unit machine_monad"
+where
+"set_gic_vcpu_ctrl_vmcr \<equiv> error []"
+
+definition
+get_gic_vcpu_ctrl_apr :: "machine_word machine_monad"
+where
+"get_gic_vcpu_ctrl_apr \<equiv> error []"
+
+definition
+set_gic_vcpu_ctrl_apr :: "machine_word \<Rightarrow> unit machine_monad"
+where
+"set_gic_vcpu_ctrl_apr \<equiv> error []"
+
+definition
+get_gic_vcpu_ctrl_vtr :: "machine_word machine_monad"
+where
+"get_gic_vcpu_ctrl_vtr \<equiv> error []"
+
+definition
+get_gic_vcpu_ctrl_eisr0 :: "machine_word machine_monad"
+where
+"get_gic_vcpu_ctrl_eisr0 \<equiv> error []"
+
+definition
+get_gic_vcpu_ctrl_eisr1 :: "machine_word machine_monad"
+where
+"get_gic_vcpu_ctrl_eisr1 \<equiv> error []"
+
+definition
+get_gic_vcpu_ctrl_misr :: "machine_word machine_monad"
+where
+"get_gic_vcpu_ctrl_misr \<equiv> error []"
+
+definition
+get_gic_vcpu_ctrl_lr :: "nat \<Rightarrow> machine_word machine_monad"
+where
+"get_gic_vcpu_ctrl_lr \<equiv> error []"
+
+definition
+set_gic_vcpu_ctrl_lr :: "nat \<Rightarrow> machine_word \<Rightarrow> unit machine_monad"
+where
+"set_gic_vcpu_ctrl_lr \<equiv> error []"
 
 definition
 physBase :: "paddr"
