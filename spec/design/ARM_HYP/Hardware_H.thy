@@ -326,75 +326,6 @@ where
 "addressTranslateS1CPR \<equiv> error []"
 
 definition
-hapFromVMRights :: "vmrights \<Rightarrow> machine_word"
-where
-"hapFromVMRights r \<equiv>
-    case r of VMKernelOnly -> 0
-              VMNoAccess -> 0
-              VMReadOnly -> 1
-              VMReadWrite -> 3"
-
-definition
-wordsFromPDE :: "pde \<Rightarrow> machine_word list"
-where
-"wordsFromPDE x0\<equiv> (case x0 of
-    InvalidPDE \<Rightarrow>    [0, 0]
-  | (PageTablePDE table) \<Rightarrow>  
-    let
-     w0 = 3 ||;
-               (fromIntegral table && 0xfffff000)
-    in
-    [w0, 0]
-  | (SectionPDE frame cacheable xn rights) \<Rightarrow>  
-    let
-     w1 = 0 || (if xn then (1 << 22) else 0);
-          w0 = 1 ||
-               (fromIntegral frame && 0xfffff000) ||
-               (1 << 10) ||
-               (hapFromVMRights rights `~shiftL~` 6) ||
-               (if cacheable then 0xf `~shiftL~` 2 else 0)
-    in
-    [w0, w1]
-  | (SuperSectionPDE frame cacheable xn rights) \<Rightarrow>  
-    let
-     w1 = 0 || (if xn then (1 << 22) else 0) || bit 20;
-          w0 = 1 ||
-               (fromIntegral frame && 0xfffff000) ||
-               (1 << 10) ||
-               (hapFromVMRights rights `~shiftL~` 6) ||
-               (if cacheable then 0xf `~shiftL~` 2 else 0)
-    in
-    [w0, w1]
-  )"
-
-definition
-wordsFromPTE :: "pte \<Rightarrow> machine_word list"
-where
-"wordsFromPTE x0\<equiv> (case x0 of
-    InvalidPTE \<Rightarrow>    [0, 0]
-  | (SmallPagePTE frame cacheable xn rights) \<Rightarrow>  
-    let
-     w1 = 0 || (if xn then (1 << 22) else 0) || bit 20;
-          w0 = 3 ||
-               (fromIntegral frame && 0xfffff000) ||
-               (1 << 10) ||
-               (hapFromVMRights rights `~shiftL~` 6) ||
-               (if cacheable then 0xf `~shiftL~` 2 else 0)
-    in
-    [w0, w1]
-  | (LargePagePTE frame cacheable xn rights) \<Rightarrow>  
-    let
-     w1 = 0 || (if xn then (1 << 22) else 0);
-          w0 = 3 ||
-               (fromIntegral frame && 0xfffff000) ||
-               (1 << 10) ||
-               (hapFromVMRights rights `~shiftL~` 6) ||
-               (if cacheable then 0xf `~shiftL~` 2 else 0)
-    in
-    [w0, w1]
-  )"
-
-definition
 "pteBits\<equiv> (3 ::nat)"
 
 definition
@@ -489,14 +420,23 @@ context Arch begin global_naming ARM_HYP_H
 
 
 definition
+hapFromVMRights :: "vmrights \<Rightarrow> machine_word"
+where
+"hapFromVMRights x0\<equiv> (case x0 of
+    VMKernelOnly \<Rightarrow>    0
+  | VMNoAccess \<Rightarrow>    0
+  | VMReadOnly \<Rightarrow>    1
+  | VMReadWrite \<Rightarrow>    3
+  )"
+
+definition
 wordsFromPDE :: "pde \<Rightarrow> machine_word list"
 where
 "wordsFromPDE x0\<equiv> (case x0 of
     InvalidPDE \<Rightarrow>    [0, 0]
   | (PageTablePDE table) \<Rightarrow>  
     let
-     w0 = 3 ||;
-               (fromIntegral table && 0xfffff000)
+     w0 = 3 || (fromIntegral table && 0xfffff000)
     in
     [w0, 0]
   | (SectionPDE frame cacheable xn rights) \<Rightarrow>  

@@ -381,11 +381,11 @@ where
             armKSHWASIDTable= funArray (const Nothing),
             armKSNextASID= minBound,
             armKSASIDMap= funPartialArray (const Nothing) asidRange,
+            armUSGlobalPT= error [],
+            armKSCurVCPU= error [],
             armKSKernelVSpace=
                 (\<lambda> vref. if vref < mask 20 then ArmVSpaceKernelWindow
-                                            else ArmVSpaceInvalidRegion),
-            armUSGlobalPT= error [],
-            armKSCurVCPU= error []
+                                            else ArmVSpaceInvalidRegion)
             \<rparr>
     in
                                    (state, frames)"

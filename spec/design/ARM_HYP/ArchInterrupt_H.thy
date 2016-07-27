@@ -25,12 +25,12 @@ defs checkIRQ_def:
 defs handleReservedIRQ_def:
 "handleReservedIRQ irq \<equiv> haskell_fail []"
 
-defs initInterruptController_def:
-"initInterruptController\<equiv> (do
-    setIRQState IRQReserved $ IRQ irqVGICMaintenance;
+
+definition initInterruptController :: "unit kernel"
+  where "initInterruptController \<equiv> (do
+    setIRQState IRQReserved $ irqVGICMaintenance;
     return ()
 od)"
-
 
 end
 end

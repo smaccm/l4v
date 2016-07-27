@@ -98,19 +98,19 @@ defs copyGlobalMappings_def:
     storePDE (newPD + offset) pde
 od)"
 
-definition
+defs largePagePTEOffsets_def:
 "largePagePTEOffsets \<equiv>
     let
      pts = fromIntegral pteBits
     in
-                             [0, PPtr pts  .e.  PPtr (15 `~shiftL~` pteBits)] :: [PPtr PTE]"
+                             [0, PPtr pts  .e.  PPtr (15 `~shiftL~` pteBits)]"
 
-definition
+defs superSectionPDEOffsets_def:
 "superSectionPDEOffsets \<equiv>
     let
      pds = fromIntegral pdeBits
     in
-                                [0, PPtr pds  .e.  PPtr (15 `~shiftL~` pdeBits)] :: [PPtr PDE]"
+                                [0, PPtr pds  .e.  PPtr (15 `~shiftL~` pdeBits)]"
 
 defs createMappingEntries_def:
 "createMappingEntries base vptr x2 vmRights attrib pd\<equiv> (case x2 of
@@ -197,9 +197,9 @@ defs lookupIPCBuffer_def:
     bufferPtr \<leftarrow> threadGet tcbIPCBuffer thread;
     bufferFrameSlot \<leftarrow> getThreadBufferSlot thread;
     bufferCap \<leftarrow> getSlotCap bufferFrameSlot;
-    (let v33 = bufferCap in
-        if isArchObjectCap v33 \<and> isPageCap (capCap v33)
-        then let frame = capCap v33
+    (let v36 = bufferCap in
+        if isArchObjectCap v36 \<and> isPageCap (capCap v36)
+        then let frame = capCap v36
         in  (do
             rights \<leftarrow> return ( capVPRights frame);
             pBits \<leftarrow> return ( pageBitsForSize $ capVPSize frame);
@@ -489,8 +489,8 @@ defs setVMRootForFlush_def:
     tcb \<leftarrow> getCurThread;
     threadRootSlot \<leftarrow> getThreadVSpaceRoot tcb;
     threadRoot \<leftarrow> getSlotCap threadRootSlot;
-    (let v37 = threadRoot in
-        if isArchObjectCap v37 \<and> isPageDirectoryCap (capCap v37) \<and> capPDMappedASID (capCap v37) \<noteq> None \<and> capPDBasePtr (capCap v37) = pd
+    (let v40 = threadRoot in
+        if isArchObjectCap v40 \<and> isPageDirectoryCap (capCap v40) \<and> capPDMappedASID (capCap v40) \<noteq> None \<and> capPDBasePtr (capCap v40) = pd
         then let cur_pd = pd in  return False
         else  (do
             armv_contextSwitch pd asid;
@@ -710,15 +710,15 @@ defs resolveVAddr_def:
     pdSlot \<leftarrow> return ( lookupPDSlot pd vaddr);
     pde \<leftarrow> getObject pdSlot;
     (case pde of
-          SectionPDE frame v45 v46 v47 \<Rightarrow>   return $ Just (ARMSection, frame)
-        | SuperSectionPDE frame v48 v49 v50 \<Rightarrow>   return $ Just (ARMSuperSection, frame)
+          SectionPDE frame v48 v49 v50 \<Rightarrow>   return $ Just (ARMSection, frame)
+        | SuperSectionPDE frame v51 v52 v53 \<Rightarrow>   return $ Just (ARMSuperSection, frame)
         | PageTablePDE table \<Rightarrow>   (do
             pt \<leftarrow> return ( ptrFromPAddr table);
             pteSlot \<leftarrow> lookupPTSlotFromPT pt vaddr;
             pte \<leftarrow> getObject pteSlot;
             (case pte of
-                  LargePagePTE frame v39 v40 v41 \<Rightarrow>   return $ Just (ARMLargePage, frame)
-                | SmallPagePTE frame v42 v43 v44 \<Rightarrow>   return $ Just (ARMSmallPage, frame)
+                  LargePagePTE frame v42 v43 v44 \<Rightarrow>   return $ Just (ARMLargePage, frame)
+                | SmallPagePTE frame v45 v46 v47 \<Rightarrow>   return $ Just (ARMSmallPage, frame)
                 | _ \<Rightarrow>   return Nothing
                 )
         od)
@@ -730,7 +730,213 @@ definition
 "isIOSpaceFrame arg1 \<equiv> False"
 
 defs decodeARMMMUInvocation_def:
-"decodeARMMMUInvocation label args x2 cte x4 extraCaps\<equiv> (* case removed *) undefined"
+"decodeARMMMUInvocation label args x2 cte x4 extraCaps\<equiv> (let cap = x4 in
+  if isPageDirectoryCap cap
+  then  
+    (case (isPDFlushLabel (invocationType label), args) of
+          (True, start#end#_) \<Rightarrow>   (doE
+            whenE (end \<le> start) $
+                throw $ InvalidArgument 1;
+            whenE (VPtr start \<ge> kernelBase \<or> VPtr end > kernelBase) $
+                throw IllegalOperation;
+            (pd,asid) \<leftarrow> (case cap of
+                  PageDirectoryCap pd (Some asid) \<Rightarrow>   returnOk (pd,asid)
+                | _ \<Rightarrow>   throw $ InvalidCapability 0
+                );
+            pdCheck \<leftarrow> lookupErrorOnFailure False $ findPDForASID asid;
+            whenE (pdCheck \<noteq> pd) $ throw $ InvalidCapability 0;
+            frameInfo \<leftarrow>
+                 withoutFailure $ resolveVAddr (capPDBasePtr cap) (VPtr start);
+            (case frameInfo of
+                  None \<Rightarrow>   returnOk $ InvokePageDirectory PageDirectoryNothing
+                | Some frameInfo \<Rightarrow>   (doE
+                    withoutFailure $ checkValidMappingSize (fst frameInfo);
+                    baseStart \<leftarrow> returnOk ( pageBase (VPtr start) (fst frameInfo));
+                    baseEnd \<leftarrow> returnOk ( pageBase (VPtr end - 1) (fst frameInfo));
+                    whenE (baseStart \<noteq> baseEnd) $
+                        throw $ RangeError start $ fromVPtr $ baseStart +
+                                  mask (pageBitsForSize (fst frameInfo));
+                    offset \<leftarrow> returnOk ( start && mask (pageBitsForSize (fst frameInfo)));
+                    pStart \<leftarrow> returnOk ( snd frameInfo + toPAddr offset);
+                    returnOk $ InvokePageDirectory $ PageDirectoryFlush_ \<lparr>
+                         pdFlushType= labelToFlushType label,
+                         pdFlushStart= VPtr start,
+                         pdFlushEnd= VPtr end - 1,
+                         pdFlushPStart= pStart,
+                         pdFlushPD= pd,
+                         pdFlushASID= asid \<rparr>
+                odE)
+                )
+          odE)
+        | (True, _) \<Rightarrow>   throw TruncatedMessage
+        | _ \<Rightarrow>   throw IllegalOperation
+        )
+  else if isPageTableCap cap
+  then  
+    (case (invocationType label, args, extraCaps) of
+          (ArchInvocationLabel ARMPageTableMap, vaddr#attr#_, (pdCap,_)#_) \<Rightarrow>   (doE
+            whenE (isJust $ capPTMappedAddress cap) $
+                throw $ InvalidCapability 0;
+            (pd,asid) \<leftarrow> (case pdCap of
+                  ArchObjectCap (PageDirectoryCap pd (Some asid)) \<Rightarrow>   returnOk (pd,asid)
+                | _ \<Rightarrow>   throw $ InvalidCapability 1
+                );
+            whenE (VPtr vaddr \<ge> kernelBase) $
+                throw $ InvalidArgument 0;
+            pdCheck \<leftarrow> lookupErrorOnFailure False $ findPDForASID asid;
+            whenE (pdCheck \<noteq> pd) $ throw $ InvalidCapability 1;
+            pdIndex \<leftarrow> returnOk ( vaddr `~shiftR~` (pageBits + ptBits - pteBits));
+            vaddr' \<leftarrow> returnOk ( pdIndex `~shiftL~` (pageBits + ptBits - pteBits));
+            pdSlot \<leftarrow> returnOk ( pd + (PPtr $ pdIndex `~shiftL~` pdeBits));
+            oldpde \<leftarrow> withoutFailure $ getObject pdSlot;
+            unlessE (oldpde = InvalidPDE) $ throw DeleteFirst;
+            pde \<leftarrow> returnOk ( PageTablePDE_ \<lparr>
+                    pdeTable= addrFromPPtr $ capPTBasePtr cap\<rparr>);
+            returnOk $ InvokePageTable $ PageTableMap_ \<lparr>
+                ptMapCap= ArchObjectCap $
+                    cap \<lparr> capPTMappedAddress:= Just (asid, VPtr vaddr') \<rparr>,
+                ptMapCTSlot= cte,
+                ptMapPDE= pde,
+                ptMapPDSlot= pdSlot \<rparr>
+          odE)
+        | (ArchInvocationLabel ARMPageTableMap, _, _) \<Rightarrow>   throw TruncatedMessage
+        | (ArchInvocationLabel ARMPageTableUnmap, _, _) \<Rightarrow>   (doE
+            cteVal \<leftarrow> withoutFailure $ getCTE cte;
+            final \<leftarrow> withoutFailure $ isFinalCapability cteVal;
+            unlessE final $ throw RevokeFirst;
+            returnOk $ InvokePageTable $ PageTableUnmap_ \<lparr>
+                ptUnmapCap= cap,
+                ptUnmapCapSlot= cte \<rparr>
+        odE)
+        | _ \<Rightarrow>   throw IllegalOperation
+        )
+  else if isPageCap cap
+  then  
+ (
+    (case (invocationType label, args, extraCaps) of
+          (ArchInvocationLabel ARMPageMap, vaddr#rightsMask#attr#_, (pdCap,_)#_) \<Rightarrow>   (doE
+            whenE (isJust $ capVPMappedAddress cap) $
+                throw $ InvalidCapability 0;
+            (pd,asid) \<leftarrow> (case pdCap of
+                  ArchObjectCap (PageDirectoryCap pd (Some asid)) \<Rightarrow>   returnOk (pd,asid)
+                | _ \<Rightarrow>   throw $ InvalidCapability 1
+                );
+            pdCheck \<leftarrow> lookupErrorOnFailure False $ findPDForASID asid;
+            whenE (pdCheck \<noteq> pd) $ throw $ InvalidCapability 1;
+            vtop \<leftarrow> returnOk ( vaddr + bit (pageBitsForSize $ capVPSize cap) - 1);
+            whenE (VPtr vtop \<ge> kernelBase) $
+                throw $ InvalidArgument 0;
+            vmRights \<leftarrow> returnOk ( maskVMRights (capVPRights cap) $
+                    rightsFromWord rightsMask);
+            checkVPAlignment (capVPSize cap) (VPtr vaddr);
+            entries \<leftarrow> createMappingEntries (addrFromPPtr $ capVPBasePtr cap)
+                (VPtr vaddr) (capVPSize cap) vmRights
+                (attribsFromWord attr) pd;
+            ensureSafeMapping entries;
+            returnOk $ InvokePage $ PageMap_ \<lparr>
+                pageMapASID= asid,
+                pageMapCap= ArchObjectCap $
+                    cap \<lparr> capVPMappedAddress:= Just (asid, VPtr vaddr) \<rparr>,
+                pageMapCTSlot= cte,
+                pageMapEntries= entries \<rparr>
+          odE)
+        | (ArchInvocationLabel ARMPageMap, _, _) \<Rightarrow>   throw TruncatedMessage
+        | (ArchInvocationLabel ARMPageRemap, rightsMask#attr#_, (pdCap, _)#_) \<Rightarrow>   (doE
+            whenE (isIOSpaceFrame cap) $ throw IllegalOperation;
+            (pd,asid) \<leftarrow> (case pdCap of
+                  ArchObjectCap (PageDirectoryCap pd (Some asid)) \<Rightarrow>   returnOk (pd,asid)
+                | _ \<Rightarrow>   throw $ InvalidCapability 1
+                );
+            (asidCheck, vaddr) \<leftarrow> (case capVPMappedAddress cap of
+                  Some a \<Rightarrow>   returnOk a
+                | _ \<Rightarrow>   throw $ InvalidCapability 0
+                );
+            pdCheck \<leftarrow> lookupErrorOnFailure False $ findPDForASID asidCheck;
+            whenE (pdCheck \<noteq> pd \<or> asidCheck \<noteq> asid) $ throw $ InvalidCapability 1;
+            vmRights \<leftarrow> returnOk ( maskVMRights (capVPRights cap) $
+                    rightsFromWord rightsMask);
+            checkVPAlignment (capVPSize cap) vaddr;
+            entries \<leftarrow> createMappingEntries (addrFromPPtr $ capVPBasePtr cap)
+                vaddr (capVPSize cap) vmRights (attribsFromWord attr) pd;
+            ensureSafeMapping entries;
+            returnOk $ InvokePage $ PageRemap_ \<lparr>
+                pageRemapASID= asidCheck,
+                pageRemapEntries= entries \<rparr>
+        odE)
+        | (ArchInvocationLabel ARMPageRemap, _, _) \<Rightarrow>   throw TruncatedMessage
+        | (ArchInvocationLabel ARMPageUnmap, _, _) \<Rightarrow>  
+                returnOk $
+                              InvokePage $ PageUnmap_ \<lparr>
+                                             pageUnmapCap= cap,
+                                             pageUnmapCapSlot= cte \<rparr>
+        | (ArchInvocationLabel ARMPageClean_Data, _, _) \<Rightarrow>   decodeARMPageFlush label args cap
+        | (ArchInvocationLabel ARMPageInvalidate_Data, _, _) \<Rightarrow>   decodeARMPageFlush label args cap
+        | (ArchInvocationLabel ARMPageCleanInvalidate_Data, _, _) \<Rightarrow>   decodeARMPageFlush label args cap
+        | (ArchInvocationLabel ARMPageUnify_Instruction, _, _) \<Rightarrow>   decodeARMPageFlush label args cap
+        | (ArchInvocationLabel ARMPageGetAddress, _, _) \<Rightarrow>   returnOk $ InvokePage $ PageGetAddr (capVPBasePtr cap)
+        | _ \<Rightarrow>   throw IllegalOperation
+        )
+ )
+  else if isASIDControlCap cap
+  then  
+    (case (invocationType label, args, extraCaps) of
+          (ArchInvocationLabel ARMASIDControlMakePool, index#depth#_, (untyped,parentSlot)#(root,_)#_) \<Rightarrow>   (doE
+            asidTable \<leftarrow> withoutFailure $ gets (armKSASIDTable \<circ> ksArchState);
+            free \<leftarrow> returnOk ( filter (\<lambda> (x,y). x \<le> (bit asidHighBits) - 1 \<and> isNothing y) $ assocs asidTable);
+            whenE (null free) $ throw DeleteFirst;
+            base \<leftarrow> returnOk ( (fst $ head free) `~shiftL~` asidLowBits);
+            pool \<leftarrow> returnOk ( makeObject ::asidpool);
+            frame \<leftarrow> (let v54 = untyped in
+                if isUntypedCap v54 \<and> capBlockSize v54 = objBits pool
+                then  (doE
+                    ensureNoChildren parentSlot;
+                    returnOk $ capPtr untyped
+                odE)
+                else  throw $ InvalidCapability 1
+                );
+            destSlot \<leftarrow> lookupTargetSlot
+                root (CPtr index) (fromIntegral depth);
+            ensureEmptySlot destSlot;
+            returnOk $ InvokeASIDControl $ MakePool_ \<lparr>
+                makePoolFrame= frame,
+                makePoolSlot= destSlot,
+                makePoolParent= parentSlot,
+                makePoolBase= base \<rparr>
+          odE)
+        | (ArchInvocationLabel ARMASIDControlMakePool, _, _) \<Rightarrow>   throw TruncatedMessage
+        | _ \<Rightarrow>   throw IllegalOperation
+        )
+  else if isASIDPoolCap cap
+  then  
+    (case (invocationType label, extraCaps) of
+          (ArchInvocationLabel ARMASIDPoolAssign, (pdCap,pdCapSlot)#_) \<Rightarrow>  
+            (case pdCap of
+                  ArchObjectCap (PageDirectoryCap _ None) \<Rightarrow>   (doE
+                    asidTable \<leftarrow> withoutFailure $ gets (armKSASIDTable \<circ> ksArchState);
+                    base \<leftarrow> returnOk ( capASIDBase cap);
+                    poolPtr \<leftarrow> returnOk ( asidTable (asidHighBitsOf base));
+                    whenE (isNothing poolPtr) $ throw $ FailedLookup False InvalidRoot;
+ p \<leftarrow> liftME the $  returnOk ( poolPtr);
+                    whenE (p \<noteq> capASIDPool cap) $ throw $ InvalidCapability 0;
+ pool \<leftarrow> liftME (inv ASIDPool) $  withoutFailure $ getObject $ p;
+                    free \<leftarrow> returnOk ( filter (\<lambda> (x,y). x \<le>  (bit asidLowBits) - 1
+                                                 \<and> x + base \<noteq> 0 \<and> isNothing y) $ assocs pool);
+                    whenE (null free) $ throw DeleteFirst;
+                    asid \<leftarrow> returnOk ( fst $ head free);
+                    returnOk $ InvokeASIDPool $ Assign_ \<lparr>
+                        assignASID= asid + base,
+                        assignASIDPool= capASIDPool cap,
+                        assignASIDCTSlot= pdCapSlot \<rparr>
+                  odE)
+                | _ \<Rightarrow>   throw $ InvalidCapability 1
+                )
+        | (ArchInvocationLabel ARMASIDPoolAssign, _) \<Rightarrow>   throw TruncatedMessage
+        | _ \<Rightarrow>   throw IllegalOperation
+        )
+  else if isVCPUCap cap
+  then   haskell_fail []
+  else undefined
+  )"
 
 defs decodeARMPageFlush_def:
 "decodeARMPageFlush label args cap\<equiv> (case (args, capVPMappedAddress cap) of
@@ -771,7 +977,7 @@ defs performARMMMUInvocation_def:
         | InvokePage oper \<Rightarrow>   performPageInvocation oper
         | InvokeASIDControl oper \<Rightarrow>   performASIDControlInvocation oper
         | InvokeASIDPool oper \<Rightarrow>   performASIDPoolInvocation oper
-        | InvokeVCPU v52 \<Rightarrow>   haskell_fail []
+        | InvokeVCPU v58 \<Rightarrow>   haskell_fail []
         );
     return $ []
 od)"
@@ -937,12 +1143,12 @@ defs performASIDPoolInvocation_def:
 defs storePDE_def:
 "storePDE slot pde\<equiv> (do
     setObject slot pde;
-    v58 \<leftarrow>   return ( wordsFromPDE pde);
-    w0 \<leftarrow> headM v58;
-     v60 \<leftarrow>   tailM v58;
-     w1 \<leftarrow> headM v60;
-     v59 \<leftarrow> tailM v60;
-    haskell_assert (v59 = []) [];
+    v64 \<leftarrow>   return ( wordsFromPDE pde);
+    w0 \<leftarrow> headM v64;
+     v66 \<leftarrow>   tailM v64;
+     w1 \<leftarrow> headM v66;
+     v65 \<leftarrow> tailM v66;
+    haskell_assert (v65 = []) [];
     doMachineOp $ storeWordVM (PPtr $ fromPPtr slot) w0;
     doMachineOp $ storeWordVM (PPtr $ fromPPtr slot + fromIntegral wordSize) w1
 od)"
@@ -950,12 +1156,12 @@ od)"
 defs storePTE_def:
 "storePTE slot pte\<equiv> (do
     setObject slot pte;
-    v62 \<leftarrow>   return ( wordsFromPTE pte);
-    w0 \<leftarrow> headM v62;
-     v64 \<leftarrow>   tailM v62;
-     w1 \<leftarrow> headM v64;
-     v63 \<leftarrow> tailM v64;
-    haskell_assert (v63 = []) [];
+    v68 \<leftarrow>   return ( wordsFromPTE pte);
+    w0 \<leftarrow> headM v68;
+     v70 \<leftarrow>   tailM v68;
+     w1 \<leftarrow> headM v70;
+     v69 \<leftarrow> tailM v70;
+    haskell_assert (v69 = []) [];
     doMachineOp $ storeWordVM (PPtr $ fromPPtr slot) w0;
     doMachineOp $ storeWordVM (PPtr $ fromPPtr slot + fromIntegral wordSize) w1
 od)"
