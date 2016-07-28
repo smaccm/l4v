@@ -131,35 +131,6 @@ definition
   vcpu_bits :: "nat" where
   "vcpu_bits \<equiv> pageBits"
 
-(* FIXME ARMHYP: C code has these. Do we want to model these, or just have DONT_TRANSLATE on
-accessor functions that get to these? In particular vgic.lr manages virtual IRQs; do we ever want
-to prove anything about those?
-
-struct cpXRegs {
-    uint32_t sctlr;
-    uint32_t actlr;
-};
-
-struct gicVCpuIface {
-    uint32_t hcr;
-    uint32_t vmcr;
-    uint32_t apr;
-    uint32_t lr[64];
-};
-
-struct vcpu {
-    /* TCB associated with this VCPU. */
-    struct tcb *tcb;
-    struct cpXRegs cpx;
-    struct gicVCpuIface vgic;
-};
-*)
-
-text {*  vcpu *} 
-
-datatype vcpu = vcpu_tcb_ptr obj_ref 
-
-
 text {*
   ASID pools translate 10 bits, VCPUs store a potential association to a TCB as well as 
   an extended register context. Page tables have 512 entries (cf B3.6.5, pg 1348). For data pages,
@@ -284,6 +255,39 @@ end
 
 qualify ARM_A (in Arch)
 
+(* FIXME ARMHYP: C code has these. Do we want to model these, or just have DONT_TRANSLATE on
+accessor functions that get to these? In particular vgic.lr manages virtual IRQs; do we ever want
+to prove anything about those?
+
+struct cpXRegs {
+    uint32_t sctlr;
+    uint32_t actlr;
+};
+
+struct gicVCpuIface {
+    uint32_t hcr;
+    uint32_t vmcr;
+    uint32_t apr;
+    uint32_t lr[64];
+};
+
+struct vcpu {
+    /* TCB associated with this VCPU. */
+    struct tcb *tcb;
+    struct cpXRegs cpx;
+    struct gicVCpuIface vgic;
+};
+*)
+
+text {*  vcpu *} 
+
+record vcpu = 
+  vcpu_tcb :: "obj_ref option"
+  vcpu_sctlr   :: word32
+  vcpu_actlr   :: word32
+
+
+
 record arch_state =
   arm_globals_frame :: obj_ref
   arm_asid_table    :: "word8 \<rightharpoonup> obj_ref"
@@ -314,7 +318,7 @@ where
          | PageDirectory pd         \<Rightarrow> APageDirectory
          | DataPage sz              \<Rightarrow> AIntData sz
          | ASIDPool f               \<Rightarrow> AASIDPool
-         | VCPU v                   \<Rightarrow> AVCPU)"
+         | VCPU v h                  \<Rightarrow> AVCPU)"
 
 end
 
