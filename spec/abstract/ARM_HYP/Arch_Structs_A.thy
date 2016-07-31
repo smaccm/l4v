@@ -157,19 +157,18 @@ where
   "arch_obj_size (ASIDPoolCap p as) = pageBits"
 | "arch_obj_size ASIDControlCap = 0"
 | "arch_obj_size (PageCap x rs sz as4) = pageBitsForSize sz"
-| "arch_obj_size (PageDirectoryCap x as2) = 14"
-| "arch_obj_size (PageTableCap x as3) = 10"
-| "arch_obj_size (VCPUCap _) = 12"
+| "arch_obj_size (PageDirectoryCap x as2) = pd_bits"
+| "arch_obj_size (PageTableCap x as3) = pt_bits"
+| "arch_obj_size (VCPUCap _) = vcpu_bits"
 
 primrec
   arch_kobj_size :: "arch_kernel_obj \<Rightarrow> nat"
 where
   "arch_kobj_size (ASIDPool p) = pageBits"
-| "arch_kobj_size (PageTable pte) = pte_bits"
-| "arch_kobj_size (PageDirectory pde) = pde_bits"
+| "arch_kobj_size (PageTable pte) = pt_bits"
+| "arch_kobj_size (PageDirectory pde) = pd_bits"
 | "arch_kobj_size (DataPage sz) = pageBitsForSize sz"
-| "arch_kobj_size (VCPU _ _) = 12"
-(* FIXME ARMHYP: vcpu_bits? *)
+| "arch_kobj_size (VCPU _ _) = vcpu_bits"
 
 primrec
   aobj_ref :: "arch_cap \<rightharpoonup> obj_ref"
