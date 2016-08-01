@@ -22,7 +22,7 @@ begin
 
 text {*
   Some parts of some registers cannot be written by the user.
-  Bits set in the mask will be preserved (used in vcpu_write_register).
+  Bits set in the mask will be preserved (used in vcpu\_write\_register).
 *}
 consts
   register_mask :: "hyper_reg \<Rightarrow> machine_word option"
