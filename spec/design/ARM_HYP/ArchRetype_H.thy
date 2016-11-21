@@ -314,6 +314,15 @@ defs capUntypedSize_def:
   | (ASIDPoolCap _ _) \<Rightarrow>    1 `~shiftL~` (asidLowBits + 2)
   )"
 
+defs prepareThreadDelete_def:
+"prepareThreadDelete thread\<equiv> (do
+    tcbVCPU \<leftarrow> archThreadGet atcbVCPUPtr thread;
+    (case tcbVCPU of
+        Some ptr \<Rightarrow>   dissociateVCPUTCB ptr thread
+      | _ \<Rightarrow>   return ()
+      )
+od)"
+
 
 end
 end
