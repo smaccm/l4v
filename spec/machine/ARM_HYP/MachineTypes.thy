@@ -8,7 +8,7 @@
  * @TAG(GD_GPL)
  *)
 
-chapter "ARM Machine Types"
+chapter "ARM_HYP Machine Types"
 
 theory MachineTypes
 imports
@@ -16,9 +16,7 @@ imports
   "../Setup_Locale"
   Platform
 begin
-context Arch begin global_naming ARM
-
-(* !!! Generated File !!! Skeleton in ../../design/skel-m/ARM/MachineTypes.thy *)
+context Arch begin global_naming ARM_HYP
 
 text {*
   An implementation of the machine's types, defining register set
@@ -60,10 +58,10 @@ end
 context begin interpretation Arch .
 requalify_types register
 end
-context Arch begin global_naming ARM
+context Arch begin global_naming ARM_HYP
 
 end
-qualify ARM (in Arch) 
+qualify ARM_HYP (in Arch) 
 (* register instance proofs *)
 (*<*)
 instantiation register :: enum begin
@@ -123,7 +121,7 @@ end
 
 (*>*)
 end_qualify
-context Arch begin global_naming ARM
+context Arch begin global_naming ARM_HYP
 
 (*>*)
 definition
@@ -186,24 +184,24 @@ text {*
 *}
 end
 
-qualify ARM (in Arch)
+qualify ARM_HYP (in Arch)
 
 record
   machine_state =
-  irq_masks :: "ARM.irq \<Rightarrow> bool"
+  irq_masks :: "ARM_HYP.irq \<Rightarrow> bool"
   irq_state :: nat
   underlying_memory :: "word32 \<Rightarrow> word8"
-  exclusive_state :: ARM.exclusive_monitors
-  machine_state_rest :: ARM.machine_state_rest
+  exclusive_state :: ARM_HYP.exclusive_monitors
+  machine_state_rest :: ARM_HYP.machine_state_rest
 
 consts irq_oracle :: "nat \<Rightarrow> 10 word"
 
 axiomatization irq_oracle_max_irqInst where
-  irq_oracle_max_irq: "\<forall> n. (irq_oracle n) <= ARM.maxIRQ"
+  irq_oracle_max_irq: "\<forall> n. (irq_oracle n) <= ARM_HYP.maxIRQ"
 
 end_qualify
 
-context Arch begin global_naming ARM
+context Arch begin global_naming ARM_HYP
 
 text {*
   The machine monad is used for operations on the state defined above.
@@ -213,9 +211,9 @@ type_synonym 'a machine_monad = "(machine_state, 'a) nondet_monad"
 end
 
 translations
-  (type) "'c ARM.machine_monad" <= (type) "(ARM.machine_state, 'c) nondet_monad"
+  (type) "'c ARM_HYP.machine_monad" <= (type) "(ARM_HYP.machine_state, 'c) nondet_monad"
 
-context Arch begin global_naming ARM
+context Arch begin global_naming ARM_HYP
 
 text {*
   After kernel initialisation all IRQs are masked.
@@ -285,7 +283,8 @@ datatype vmfault_type =
     ARMDataAbort
   | ARMPrefetchAbort
 
-datatype hyp_fault_type = ARMNoHypFaults
+datatype hyp_fault_type =
+    ARMNoHypFaults
 
 definition
 pageBits :: "nat"
@@ -309,10 +308,10 @@ context begin interpretation Arch .
 requalify_types vmpage_size
 end
 
-context Arch begin global_naming ARM
+context Arch begin global_naming ARM_HYP
 
 end
-qualify ARM (in Arch) 
+qualify ARM_HYP (in Arch) 
 (* vmpage_size instance proofs *)
 (*<*)
 instantiation vmpage_size :: enum begin
@@ -358,7 +357,7 @@ end
 
 (*>*)
 end_qualify
-context Arch begin global_naming ARM
+context Arch begin global_naming ARM_HYP
 
 
 end
