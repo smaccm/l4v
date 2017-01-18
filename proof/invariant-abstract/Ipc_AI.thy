@@ -2021,7 +2021,7 @@ lemma sai_invs[wp]:
                            valid_state_def valid_obj_def valid_ntfn_def)
     apply (rule hoare_seq_ext [OF _ gts_sp])
     apply (rule hoare_pre)
-     apply (rule hoare_vcg_split_if)
+     apply (rule hoare_vcg_if_split)
       apply (wp sts_invs_minor | clarsimp split: thread_state.splits)+
       apply (rule hoare_vcg_conj_lift[OF hoare_strengthen_post[OF cancel_ipc_simple]])
        apply (fastforce elim: st_tcb_weakenE)
@@ -2540,7 +2540,7 @@ lemma ri_invs':
   apply (rule hoare_seq_ext[OF _ gbn_sp])
   apply (rule hoare_seq_ext)
   (* set up precondition for old proof *)
-   apply (rule_tac R="ko_at (Endpoint x) ep and ?pre" in hoare_vcg_split_if)
+   apply (rule_tac R="ko_at (Endpoint x) ep and ?pre" in hoare_vcg_if_split)
     apply (wp complete_signal_invs)
    apply (case_tac x)
     apply (wp | rule hoare_pre, wpc | simp)+
@@ -3149,7 +3149,7 @@ lemma ri_makes_simple:
   apply (rule hoare_seq_ext [OF _ gbn_sp])
   apply (rule hoare_seq_ext)
    apply (rename_tac ep I DO x CARE NOT)
-   apply (rule_tac R="ko_at (Endpoint x) ep and ?pre" in hoare_vcg_split_if)
+   apply (rule_tac R="ko_at (Endpoint x) ep and ?pre" in hoare_vcg_if_split)
     apply (wp complete_signal_invs)
    apply (case_tac x, simp_all)
      apply (rule hoare_pre, wpc)

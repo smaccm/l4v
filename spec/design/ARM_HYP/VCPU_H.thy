@@ -153,14 +153,14 @@ od)"
 definition
 makeVIRQ :: "machine_word \<Rightarrow> machine_word \<Rightarrow> machine_word \<Rightarrow> virq"
 where
-"makeVIRQ group prio irq \<equiv>
+"makeVIRQ grp prio irq \<equiv>
     let
      groupShift = 30;
           prioShift = 23;
           irqPending = bit 28;
           eoiirqen = bit 19
     in
-    (group `~shiftL~` groupShift) || (prio `~shiftL~` prioShift) || irq ||
+    (grp `~shiftL~` groupShift) || (prio `~shiftL~` prioShift) || irq ||
         irqPending || eoiirqen"
 
 definition
@@ -173,18 +173,18 @@ where
     vcpuPtr \<leftarrow> returnOk ( capVCPUPtr cap);
     vid \<leftarrow> returnOk ( mr0 && 0xffff);
     priority \<leftarrow> returnOk ( (mr0 `~shiftR~` 16) && 0xff);
-    group \<leftarrow> returnOk ( (mr0 `~shiftR~` 24) && 0xff);
+    grp \<leftarrow> returnOk ( (mr0 `~shiftR~` 24) && 0xff);
     index \<leftarrow> returnOk ( mr1 && 0xff);
     rangeCheck vid (0::nat) ((1 `~shiftL~` 10) - 1);
     rangeCheck priority (0::nat) 31;
-    rangeCheck group (0::nat) 1;
+    rangeCheck grp (0::nat) 1;
     gic_vcpu_num_list_regs \<leftarrow> withoutFailure $
         gets (armKSGICVCPUNumListRegs \<circ> ksArchState);
     rangeCheck index 0 gic_vcpu_num_list_regs;
     vcpuLR \<leftarrow> withoutFailure $ liftM (vgicLR \<circ> vcpuVGIC) $ getObject vcpuPtr;
     whenE (vcpuLR (fromIntegral index) && vgicIRQMask = vgicIRQActive) $
         throw DeleteFirst;
-    virq \<leftarrow> returnOk ( makeVIRQ (fromIntegral group) (fromIntegral priority) (fromIntegral vid));
+    virq \<leftarrow> returnOk ( makeVIRQ (fromIntegral grp) (fromIntegral priority) (fromIntegral vid));
     returnOk $ InvokeVCPU $ VCPUInjectIRQ vcpuPtr (fromIntegral index) virq
   odE)
   else   throw TruncatedMessage
