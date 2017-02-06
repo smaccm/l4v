@@ -21,13 +21,6 @@ Flag FFI
     description:        Include the C language bindings
     default:            True
 
-<<<<<<< HEAD
-Flag ArchArm
-    description:        Include ARM modules and platforms (else x64)
-    default:            True
-
-||||||| parent of 7a414f8... Haskell: build setup for arm-hyp (arm-tk1 = ARM_HYP + TK1)
-=======
 Flag ArchArm
     description:        Include ARM modules and platforms
     default:            False
@@ -36,7 +29,6 @@ Flag ArchArmHyp
     description:        Include ARM (with Hypervisor Extensions) modules and platforms
     default:            False
 
->>>>>>> 7a414f8... Haskell: build setup for arm-hyp (arm-tk1 = ARM_HYP + TK1)
 Library
     exposed-modules:        SEL4
                             SEL4.Machine.Target
@@ -52,16 +44,9 @@ Library
         include-dirs:       include
         install-includes:   sel4model.h gic.h
                             dist/build/Simulation/FFIBindings_stub.h
-<<<<<<< HEAD
     else
         build-depends:      unix
         include-dirs:       include
-||||||| parent of 7a414f8... Haskell: build setup for arm-hyp (arm-tk1 = ARM_HYP + TK1)
-=======
-        other-modules:      SEL4.Machine.Hardware.GICInterface
-                            SEL4.Machine.Hardware.MCTInterface
-                            SEL4.Machine.Hardware.MPTimerInterface
->>>>>>> 7a414f8... Haskell: build setup for arm-hyp (arm-tk1 = ARM_HYP + TK1)
 
     other-modules:          SEL4.API
                             SEL4.API.Syscall
@@ -102,17 +87,11 @@ Library
                             Data.BinaryTree
                             Data.Helpers
 
-<<<<<<< HEAD
                             SEL4.Machine.Hardware.GICInterface
                             SEL4.Machine.Hardware.MCTInterface
                             SEL4.Machine.Hardware.MPTimerInterface
     if flag(ArchArm)
         other-modules:
-||||||| parent of 7a414f8... Haskell: build setup for arm-hyp (arm-tk1 = ARM_HYP + TK1)
-=======
-    if flag(ArchArm)
-        other-modules:
->>>>>>> 7a414f8... Haskell: build setup for arm-hyp (arm-tk1 = ARM_HYP + TK1)
                             SEL4.Machine.Hardware.ARM.KZM
                             SEL4.Machine.Hardware.ARM.Exynos4210
                             SEL4.Machine.Hardware.ARM.Sabre
@@ -134,32 +113,6 @@ Library
                             SEL4.Model.StateData.ARM
                             SEL4.Machine.RegisterSet.ARM
                             SEL4.Machine.Hardware.ARM
-<<<<<<< HEAD
-
-    else
-        -- FIXME: should be a flag also, or some other way to conditionally compile
-        -- Setup.hs hooks can handle this, but do we want to do that?
-        other-modules:
-
-                            SEL4.API.Types.X64
-                            SEL4.API.InvocationLabels.X64
-                            SEL4.API.Invocation.X64
-                            SEL4.Kernel.VSpace.X64
-                            SEL4.Kernel.Thread.X64
-                            SEL4.Object.ObjectType.X64
-                            SEL4.Object.Structures.X64
-                            SEL4.Object.Interrupt.X64
-                            SEL4.Object.Instances.X64
-                            SEL4.Object.IOPort.X64
-                            SEL4.Object.TCB.X64
-                            SEL4.Model.StateData.X64
-                            SEL4.Machine.RegisterSet.X64
-                            SEL4.Machine.Hardware.X64
-
-                            SEL4.Machine.Hardware.X64.PC99
-||||||| parent of 7a414f8... Haskell: build setup for arm-hyp (arm-tk1 = ARM_HYP + TK1)
-                           
-=======
 
     -- FIXME ideally ARMHYP will share code with the main ARM development,
     -- but when doing an architecture port we want to make sure we are doing a
@@ -187,7 +140,28 @@ Library
                             SEL4.Model.StateData.ARM_HYP
                             SEL4.Machine.RegisterSet.ARM_HYP
                             SEL4.Machine.Hardware.ARM_HYP
->>>>>>> 7a414f8... Haskell: build setup for arm-hyp (arm-tk1 = ARM_HYP + TK1)
+
+    else
+        -- FIXME: should be a flag also, or some other way to conditionally compile
+        -- Setup.hs hooks can handle this, but do we want to do that?
+        other-modules:
+
+                            SEL4.API.Types.X64
+                            SEL4.API.InvocationLabels.X64
+                            SEL4.API.Invocation.X64
+                            SEL4.Kernel.VSpace.X64
+                            SEL4.Kernel.Thread.X64
+                            SEL4.Object.ObjectType.X64
+                            SEL4.Object.Structures.X64
+                            SEL4.Object.Interrupt.X64
+                            SEL4.Object.Instances.X64
+                            SEL4.Object.IOPort.X64
+                            SEL4.Object.TCB.X64
+                            SEL4.Model.StateData.X64
+                            SEL4.Machine.RegisterSet.X64
+                            SEL4.Machine.Hardware.X64
+
+                            SEL4.Machine.Hardware.X64.PC99
 
     hs-source-dirs:         src
     ghc-prof-options:       -auto-all -prof -fprof-auto
