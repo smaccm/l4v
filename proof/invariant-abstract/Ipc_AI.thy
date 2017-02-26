@@ -2361,9 +2361,7 @@ end
 
 crunch irq_handlers[wp]: set_endpoint "valid_irq_handlers"
   (wp: crunch_wps)
-(*
-crunch arch_objs [wp]: setup_caller_cap "valid_arch_objs"
-*)
+
 crunch vspace_objs [wp]: setup_caller_cap "valid_vspace_objs"
 
 crunch v_ker_map[wp]: setup_caller_cap "valid_kernel_mappings"
