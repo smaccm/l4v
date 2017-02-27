@@ -45,8 +45,12 @@ lemma set_vm_root_kheap_arch_state[wp]:
     apply (simp add: whenE_def, intro conjI[rotated] impI)
      apply (wp | simp add: returnOk_def validE_E_def validE_def)+
     apply (wp | simp add: throwError_def validE_R_def validE_def)+
-done  
+done 
 *)
+
+crunch device_state_inv[wp]: clearExMonitor "\<lambda>ms. P (device_state ms)"
+
+
 lemma clearExMonitor_invs [wp]:
   "\<lbrace>invs\<rbrace> do_machine_op clearExMonitor \<lbrace>\<lambda>_. invs\<rbrace>"
   apply (wp dmo_invs)
