@@ -744,6 +744,16 @@ locale DetSchedSchedule_AI =
     "\<And>t. \<lbrace>simple_sched_action\<rbrace> prepare_thread_delete t \<lbrace>\<lambda>_. simple_sched_action\<rbrace>"
   assumes prepare_thread_delete_valid_sched'[wp]:
     "\<And>t. \<lbrace>valid_sched\<rbrace> prepare_thread_delete t \<lbrace>\<lambda>_. valid_sched\<rbrace>"
+  assumes make_fault_arch_msg_not_cur_thread[wp] :
+    "\<And>ft t t'. make_arch_fault_msg ft t \<lbrace>not_cur_thread t'\<rbrace>"
+  assumes make_fault_arch_msg_valid_sched[wp] :
+    "\<And>ft t. make_arch_fault_msg ft t \<lbrace>valid_sched\<rbrace>"
+  assumes make_fault_arch_msg_scheduler_action[wp] :
+    "\<And>P ft t. make_arch_fault_msg ft t \<lbrace>\<lambda>s. P (scheduler_action s)\<rbrace>"
+  assumes make_fault_arch_msg_ready_queues[wp] :
+    "\<And>P ft t. make_arch_fault_msg ft t \<lbrace>\<lambda>s. P (ready_queues s)\<rbrace>"
+  assumes make_fault_arch_msg_valid_etcbs[wp] :
+    "\<And>ft t. make_arch_fault_msg ft t \<lbrace>valid_etcbs\<rbrace>"
 
 
 context DetSchedSchedule_AI begin
@@ -1895,7 +1905,11 @@ lemma transfer_caps_not_cur_thread[wp]:
    \<lbrace>\<lambda>rv. not_cur_thread t\<rbrace>"
   by (simp add: transfer_caps_def | wp transfer_caps_loop_pres | wpc)+
 
-crunch not_cur_thread[wp]: do_ipc_transfer, as_user "not_cur_thread t"
+
+crunch not_cur_thread[wp]: as_user "not_cur_thread t"
+  (wp: crunch_wps simp: crunch_simps ignore: const_on_failure)
+
+crunch (in DetSchedSchedule_AI) not_cur_thread[wp] : do_ipc_transfer "not_cur_thread t"
   (wp: crunch_wps simp: crunch_simps ignore: const_on_failure)
 
 lemma switch_if_required_to_valid_sched':
