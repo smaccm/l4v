@@ -27,7 +27,8 @@ handleHypervisorFault :: "machine_word \<Rightarrow> hyp_fault_type \<Rightarrow
 
 defs handleHypervisorFault_def:
 "handleHypervisorFault x0 x1\<equiv> (case x1 of
-    (ARMNoHypFaults) \<Rightarrow>    return ()
+    (ARMNoHypFaults) \<Rightarrow>   
+    return ()
   )"
 
 

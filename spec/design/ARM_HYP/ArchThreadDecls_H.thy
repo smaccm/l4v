@@ -1,3 +1,5 @@
+(* THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT EDIT. *)
+(* instead, see the skeleton file ArchThreadDecls_H.thy *)
 (*
  * Copyright 2014, General Dynamics C4 Systems
  *
@@ -21,7 +23,7 @@ imports
   "../KernelInitMonad_H"
 begin
 
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 consts'
 switchToThread :: "machine_word \<Rightarrow> unit kernel"

@@ -1,3 +1,5 @@
+(* THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT EDIT. *)
+(* instead, see the skeleton file Hardware_H.thy *)
 (*
  * Copyright 2014, General Dynamics C4 Systems
  *
@@ -13,11 +15,11 @@ imports
   "../../machine/ARM_HYP/MachineOps"
   State_H
 begin
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
-type_synonym irq = "Platform.ARM.irq"
+type_synonym irq = "Platform.ARM_HYP.irq"
 
-type_synonym paddr = "Platform.ARM.paddr"
+type_synonym paddr = "Platform.ARM_HYP.paddr"
 
 datatype vmrights =
     VMNoAccess
@@ -27,120 +29,82 @@ datatype vmrights =
 
 datatype pde =
     InvalidPDE
-  | PageTablePDE paddr bool machine_word
-  | SectionPDE paddr bool machine_word bool bool bool vmrights
-  | SuperSectionPDE paddr bool bool bool bool vmrights
-
-primrec
-  pdeCacheable :: "pde \<Rightarrow> bool"
-where
-  "pdeCacheable (SuperSectionPDE v0 v1 v2 v3 v4 v5) = v2"
-| "pdeCacheable (SectionPDE v0 v1 v2 v3 v4 v5 v6) = v3"
-
-primrec
-  pdeTable :: "pde \<Rightarrow> paddr"
-where
-  "pdeTable (PageTablePDE v0 v1 v2) = v0"
+  | PageTablePDE paddr
+  | SectionPDE paddr bool bool vmrights
+  | SuperSectionPDE paddr bool bool vmrights
 
 primrec
   pdeFrame :: "pde \<Rightarrow> paddr"
 where
-  "pdeFrame (SuperSectionPDE v0 v1 v2 v3 v4 v5) = v0"
-| "pdeFrame (SectionPDE v0 v1 v2 v3 v4 v5 v6) = v0"
-
-primrec
-  pdeExecuteNever :: "pde \<Rightarrow> bool"
-where
-  "pdeExecuteNever (SuperSectionPDE v0 v1 v2 v3 v4 v5) = v4"
-| "pdeExecuteNever (SectionPDE v0 v1 v2 v3 v4 v5 v6) = v5"
-
-primrec
-  pdeGlobal :: "pde \<Rightarrow> bool"
-where
-  "pdeGlobal (SuperSectionPDE v0 v1 v2 v3 v4 v5) = v3"
-| "pdeGlobal (SectionPDE v0 v1 v2 v3 v4 v5 v6) = v4"
-
-primrec
-  pdeParity :: "pde \<Rightarrow> bool"
-where
-  "pdeParity (PageTablePDE v0 v1 v2) = v1"
-| "pdeParity (SuperSectionPDE v0 v1 v2 v3 v4 v5) = v1"
-| "pdeParity (SectionPDE v0 v1 v2 v3 v4 v5 v6) = v1"
-
-primrec
-  pdeDomain :: "pde \<Rightarrow> machine_word"
-where
-  "pdeDomain (PageTablePDE v0 v1 v2) = v2"
-| "pdeDomain (SectionPDE v0 v1 v2 v3 v4 v5 v6) = v2"
+  "pdeFrame (SuperSectionPDE v0 v1 v2 v3) = v0"
+| "pdeFrame (SectionPDE v0 v1 v2 v3) = v0"
 
 primrec
   pdeRights :: "pde \<Rightarrow> vmrights"
 where
-  "pdeRights (SuperSectionPDE v0 v1 v2 v3 v4 v5) = v5"
-| "pdeRights (SectionPDE v0 v1 v2 v3 v4 v5 v6) = v6"
+  "pdeRights (SuperSectionPDE v0 v1 v2 v3) = v3"
+| "pdeRights (SectionPDE v0 v1 v2 v3) = v3"
 
 primrec
-  pdeCacheable_update :: "(bool \<Rightarrow> bool) \<Rightarrow> pde \<Rightarrow> pde"
+  pdeExecuteNever :: "pde \<Rightarrow> bool"
 where
-  "pdeCacheable_update f (SuperSectionPDE v0 v1 v2 v3 v4 v5) = SuperSectionPDE v0 v1 (f v2) v3 v4 v5"
-| "pdeCacheable_update f (SectionPDE v0 v1 v2 v3 v4 v5 v6) = SectionPDE v0 v1 v2 (f v3) v4 v5 v6"
+  "pdeExecuteNever (SuperSectionPDE v0 v1 v2 v3) = v2"
+| "pdeExecuteNever (SectionPDE v0 v1 v2 v3) = v2"
 
 primrec
-  pdeTable_update :: "(paddr \<Rightarrow> paddr) \<Rightarrow> pde \<Rightarrow> pde"
+  pdeCacheable :: "pde \<Rightarrow> bool"
 where
-  "pdeTable_update f (PageTablePDE v0 v1 v2) = PageTablePDE (f v0) v1 v2"
+  "pdeCacheable (SuperSectionPDE v0 v1 v2 v3) = v1"
+| "pdeCacheable (SectionPDE v0 v1 v2 v3) = v1"
+
+primrec
+  pdeTable :: "pde \<Rightarrow> paddr"
+where
+  "pdeTable (PageTablePDE v0) = v0"
 
 primrec
   pdeFrame_update :: "(paddr \<Rightarrow> paddr) \<Rightarrow> pde \<Rightarrow> pde"
 where
-  "pdeFrame_update f (SuperSectionPDE v0 v1 v2 v3 v4 v5) = SuperSectionPDE (f v0) v1 v2 v3 v4 v5"
-| "pdeFrame_update f (SectionPDE v0 v1 v2 v3 v4 v5 v6) = SectionPDE (f v0) v1 v2 v3 v4 v5 v6"
-
-primrec
-  pdeExecuteNever_update :: "(bool \<Rightarrow> bool) \<Rightarrow> pde \<Rightarrow> pde"
-where
-  "pdeExecuteNever_update f (SuperSectionPDE v0 v1 v2 v3 v4 v5) = SuperSectionPDE v0 v1 v2 v3 (f v4) v5"
-| "pdeExecuteNever_update f (SectionPDE v0 v1 v2 v3 v4 v5 v6) = SectionPDE v0 v1 v2 v3 v4 (f v5) v6"
-
-primrec
-  pdeGlobal_update :: "(bool \<Rightarrow> bool) \<Rightarrow> pde \<Rightarrow> pde"
-where
-  "pdeGlobal_update f (SuperSectionPDE v0 v1 v2 v3 v4 v5) = SuperSectionPDE v0 v1 v2 (f v3) v4 v5"
-| "pdeGlobal_update f (SectionPDE v0 v1 v2 v3 v4 v5 v6) = SectionPDE v0 v1 v2 v3 (f v4) v5 v6"
-
-primrec
-  pdeParity_update :: "(bool \<Rightarrow> bool) \<Rightarrow> pde \<Rightarrow> pde"
-where
-  "pdeParity_update f (PageTablePDE v0 v1 v2) = PageTablePDE v0 (f v1) v2"
-| "pdeParity_update f (SuperSectionPDE v0 v1 v2 v3 v4 v5) = SuperSectionPDE v0 (f v1) v2 v3 v4 v5"
-| "pdeParity_update f (SectionPDE v0 v1 v2 v3 v4 v5 v6) = SectionPDE v0 (f v1) v2 v3 v4 v5 v6"
-
-primrec
-  pdeDomain_update :: "(machine_word \<Rightarrow> machine_word) \<Rightarrow> pde \<Rightarrow> pde"
-where
-  "pdeDomain_update f (PageTablePDE v0 v1 v2) = PageTablePDE v0 v1 (f v2)"
-| "pdeDomain_update f (SectionPDE v0 v1 v2 v3 v4 v5 v6) = SectionPDE v0 v1 (f v2) v3 v4 v5 v6"
+  "pdeFrame_update f (SuperSectionPDE v0 v1 v2 v3) = SuperSectionPDE (f v0) v1 v2 v3"
+| "pdeFrame_update f (SectionPDE v0 v1 v2 v3) = SectionPDE (f v0) v1 v2 v3"
 
 primrec
   pdeRights_update :: "(vmrights \<Rightarrow> vmrights) \<Rightarrow> pde \<Rightarrow> pde"
 where
-  "pdeRights_update f (SuperSectionPDE v0 v1 v2 v3 v4 v5) = SuperSectionPDE v0 v1 v2 v3 v4 (f v5)"
-| "pdeRights_update f (SectionPDE v0 v1 v2 v3 v4 v5 v6) = SectionPDE v0 v1 v2 v3 v4 v5 (f v6)"
+  "pdeRights_update f (SuperSectionPDE v0 v1 v2 v3) = SuperSectionPDE v0 v1 v2 (f v3)"
+| "pdeRights_update f (SectionPDE v0 v1 v2 v3) = SectionPDE v0 v1 v2 (f v3)"
+
+primrec
+  pdeExecuteNever_update :: "(bool \<Rightarrow> bool) \<Rightarrow> pde \<Rightarrow> pde"
+where
+  "pdeExecuteNever_update f (SuperSectionPDE v0 v1 v2 v3) = SuperSectionPDE v0 v1 (f v2) v3"
+| "pdeExecuteNever_update f (SectionPDE v0 v1 v2 v3) = SectionPDE v0 v1 (f v2) v3"
+
+primrec
+  pdeCacheable_update :: "(bool \<Rightarrow> bool) \<Rightarrow> pde \<Rightarrow> pde"
+where
+  "pdeCacheable_update f (SuperSectionPDE v0 v1 v2 v3) = SuperSectionPDE v0 (f v1) v2 v3"
+| "pdeCacheable_update f (SectionPDE v0 v1 v2 v3) = SectionPDE v0 (f v1) v2 v3"
+
+primrec
+  pdeTable_update :: "(paddr \<Rightarrow> paddr) \<Rightarrow> pde \<Rightarrow> pde"
+where
+  "pdeTable_update f (PageTablePDE v0) = PageTablePDE (f v0)"
 
 abbreviation (input)
-  PageTablePDE_trans :: "(paddr) \<Rightarrow> (bool) \<Rightarrow> (machine_word) \<Rightarrow> pde" ("PageTablePDE'_ \<lparr> pdeTable= _, pdeParity= _, pdeDomain= _ \<rparr>")
+  PageTablePDE_trans :: "(paddr) \<Rightarrow> pde" ("PageTablePDE'_ \<lparr> pdeTable= _ \<rparr>")
 where
-  "PageTablePDE_ \<lparr> pdeTable= v0, pdeParity= v1, pdeDomain= v2 \<rparr> == PageTablePDE v0 v1 v2"
+  "PageTablePDE_ \<lparr> pdeTable= v0 \<rparr> == PageTablePDE v0"
 
 abbreviation (input)
-  SectionPDE_trans :: "(paddr) \<Rightarrow> (bool) \<Rightarrow> (machine_word) \<Rightarrow> (bool) \<Rightarrow> (bool) \<Rightarrow> (bool) \<Rightarrow> (vmrights) \<Rightarrow> pde" ("SectionPDE'_ \<lparr> pdeFrame= _, pdeParity= _, pdeDomain= _, pdeCacheable= _, pdeGlobal= _, pdeExecuteNever= _, pdeRights= _ \<rparr>")
+  SectionPDE_trans :: "(paddr) \<Rightarrow> (bool) \<Rightarrow> (bool) \<Rightarrow> (vmrights) \<Rightarrow> pde" ("SectionPDE'_ \<lparr> pdeFrame= _, pdeCacheable= _, pdeExecuteNever= _, pdeRights= _ \<rparr>")
 where
-  "SectionPDE_ \<lparr> pdeFrame= v0, pdeParity= v1, pdeDomain= v2, pdeCacheable= v3, pdeGlobal= v4, pdeExecuteNever= v5, pdeRights= v6 \<rparr> == SectionPDE v0 v1 v2 v3 v4 v5 v6"
+  "SectionPDE_ \<lparr> pdeFrame= v0, pdeCacheable= v1, pdeExecuteNever= v2, pdeRights= v3 \<rparr> == SectionPDE v0 v1 v2 v3"
 
 abbreviation (input)
-  SuperSectionPDE_trans :: "(paddr) \<Rightarrow> (bool) \<Rightarrow> (bool) \<Rightarrow> (bool) \<Rightarrow> (bool) \<Rightarrow> (vmrights) \<Rightarrow> pde" ("SuperSectionPDE'_ \<lparr> pdeFrame= _, pdeParity= _, pdeCacheable= _, pdeGlobal= _, pdeExecuteNever= _, pdeRights= _ \<rparr>")
+  SuperSectionPDE_trans :: "(paddr) \<Rightarrow> (bool) \<Rightarrow> (bool) \<Rightarrow> (vmrights) \<Rightarrow> pde" ("SuperSectionPDE'_ \<lparr> pdeFrame= _, pdeCacheable= _, pdeExecuteNever= _, pdeRights= _ \<rparr>")
 where
-  "SuperSectionPDE_ \<lparr> pdeFrame= v0, pdeParity= v1, pdeCacheable= v2, pdeGlobal= v3, pdeExecuteNever= v4, pdeRights= v5 \<rparr> == SuperSectionPDE v0 v1 v2 v3 v4 v5"
+  "SuperSectionPDE_ \<lparr> pdeFrame= v0, pdeCacheable= v1, pdeExecuteNever= v2, pdeRights= v3 \<rparr> == SuperSectionPDE v0 v1 v2 v3"
 
 definition
   isInvalidPDE :: "pde \<Rightarrow> bool"
@@ -153,97 +117,85 @@ definition
   isPageTablePDE :: "pde \<Rightarrow> bool"
 where
  "isPageTablePDE v \<equiv> case v of
-    PageTablePDE v0 v1 v2 \<Rightarrow> True
+    PageTablePDE v0 \<Rightarrow> True
   | _ \<Rightarrow> False"
 
 definition
   isSectionPDE :: "pde \<Rightarrow> bool"
 where
  "isSectionPDE v \<equiv> case v of
-    SectionPDE v0 v1 v2 v3 v4 v5 v6 \<Rightarrow> True
+    SectionPDE v0 v1 v2 v3 \<Rightarrow> True
   | _ \<Rightarrow> False"
 
 definition
   isSuperSectionPDE :: "pde \<Rightarrow> bool"
 where
  "isSuperSectionPDE v \<equiv> case v of
-    SuperSectionPDE v0 v1 v2 v3 v4 v5 \<Rightarrow> True
+    SuperSectionPDE v0 v1 v2 v3 \<Rightarrow> True
   | _ \<Rightarrow> False"
 
 datatype pte =
     InvalidPTE
-  | LargePagePTE paddr bool bool bool vmrights
-  | SmallPagePTE paddr bool bool bool vmrights
+  | LargePagePTE paddr bool bool vmrights
+  | SmallPagePTE paddr bool bool vmrights
 
 primrec
   pteFrame :: "pte \<Rightarrow> paddr"
 where
-  "pteFrame (LargePagePTE v0 v1 v2 v3 v4) = v0"
-| "pteFrame (SmallPagePTE v0 v1 v2 v3 v4) = v0"
-
-primrec
-  pteGlobal :: "pte \<Rightarrow> bool"
-where
-  "pteGlobal (LargePagePTE v0 v1 v2 v3 v4) = v2"
-| "pteGlobal (SmallPagePTE v0 v1 v2 v3 v4) = v2"
+  "pteFrame (LargePagePTE v0 v1 v2 v3) = v0"
+| "pteFrame (SmallPagePTE v0 v1 v2 v3) = v0"
 
 primrec
   pteRights :: "pte \<Rightarrow> vmrights"
 where
-  "pteRights (LargePagePTE v0 v1 v2 v3 v4) = v4"
-| "pteRights (SmallPagePTE v0 v1 v2 v3 v4) = v4"
+  "pteRights (LargePagePTE v0 v1 v2 v3) = v3"
+| "pteRights (SmallPagePTE v0 v1 v2 v3) = v3"
 
 primrec
   pteCacheable :: "pte \<Rightarrow> bool"
 where
-  "pteCacheable (LargePagePTE v0 v1 v2 v3 v4) = v1"
-| "pteCacheable (SmallPagePTE v0 v1 v2 v3 v4) = v1"
+  "pteCacheable (LargePagePTE v0 v1 v2 v3) = v1"
+| "pteCacheable (SmallPagePTE v0 v1 v2 v3) = v1"
 
 primrec
   pteExecuteNever :: "pte \<Rightarrow> bool"
 where
-  "pteExecuteNever (LargePagePTE v0 v1 v2 v3 v4) = v3"
-| "pteExecuteNever (SmallPagePTE v0 v1 v2 v3 v4) = v3"
+  "pteExecuteNever (LargePagePTE v0 v1 v2 v3) = v2"
+| "pteExecuteNever (SmallPagePTE v0 v1 v2 v3) = v2"
 
 primrec
   pteFrame_update :: "(paddr \<Rightarrow> paddr) \<Rightarrow> pte \<Rightarrow> pte"
 where
-  "pteFrame_update f (LargePagePTE v0 v1 v2 v3 v4) = LargePagePTE (f v0) v1 v2 v3 v4"
-| "pteFrame_update f (SmallPagePTE v0 v1 v2 v3 v4) = SmallPagePTE (f v0) v1 v2 v3 v4"
-
-primrec
-  pteGlobal_update :: "(bool \<Rightarrow> bool) \<Rightarrow> pte \<Rightarrow> pte"
-where
-  "pteGlobal_update f (LargePagePTE v0 v1 v2 v3 v4) = LargePagePTE v0 v1 (f v2) v3 v4"
-| "pteGlobal_update f (SmallPagePTE v0 v1 v2 v3 v4) = SmallPagePTE v0 v1 (f v2) v3 v4"
+  "pteFrame_update f (LargePagePTE v0 v1 v2 v3) = LargePagePTE (f v0) v1 v2 v3"
+| "pteFrame_update f (SmallPagePTE v0 v1 v2 v3) = SmallPagePTE (f v0) v1 v2 v3"
 
 primrec
   pteRights_update :: "(vmrights \<Rightarrow> vmrights) \<Rightarrow> pte \<Rightarrow> pte"
 where
-  "pteRights_update f (LargePagePTE v0 v1 v2 v3 v4) = LargePagePTE v0 v1 v2 v3 (f v4)"
-| "pteRights_update f (SmallPagePTE v0 v1 v2 v3 v4) = SmallPagePTE v0 v1 v2 v3 (f v4)"
+  "pteRights_update f (LargePagePTE v0 v1 v2 v3) = LargePagePTE v0 v1 v2 (f v3)"
+| "pteRights_update f (SmallPagePTE v0 v1 v2 v3) = SmallPagePTE v0 v1 v2 (f v3)"
 
 primrec
   pteCacheable_update :: "(bool \<Rightarrow> bool) \<Rightarrow> pte \<Rightarrow> pte"
 where
-  "pteCacheable_update f (LargePagePTE v0 v1 v2 v3 v4) = LargePagePTE v0 (f v1) v2 v3 v4"
-| "pteCacheable_update f (SmallPagePTE v0 v1 v2 v3 v4) = SmallPagePTE v0 (f v1) v2 v3 v4"
+  "pteCacheable_update f (LargePagePTE v0 v1 v2 v3) = LargePagePTE v0 (f v1) v2 v3"
+| "pteCacheable_update f (SmallPagePTE v0 v1 v2 v3) = SmallPagePTE v0 (f v1) v2 v3"
 
 primrec
   pteExecuteNever_update :: "(bool \<Rightarrow> bool) \<Rightarrow> pte \<Rightarrow> pte"
 where
-  "pteExecuteNever_update f (LargePagePTE v0 v1 v2 v3 v4) = LargePagePTE v0 v1 v2 (f v3) v4"
-| "pteExecuteNever_update f (SmallPagePTE v0 v1 v2 v3 v4) = SmallPagePTE v0 v1 v2 (f v3) v4"
+  "pteExecuteNever_update f (LargePagePTE v0 v1 v2 v3) = LargePagePTE v0 v1 (f v2) v3"
+| "pteExecuteNever_update f (SmallPagePTE v0 v1 v2 v3) = SmallPagePTE v0 v1 (f v2) v3"
 
 abbreviation (input)
-  LargePagePTE_trans :: "(paddr) \<Rightarrow> (bool) \<Rightarrow> (bool) \<Rightarrow> (bool) \<Rightarrow> (vmrights) \<Rightarrow> pte" ("LargePagePTE'_ \<lparr> pteFrame= _, pteCacheable= _, pteGlobal= _, pteExecuteNever= _, pteRights= _ \<rparr>")
+  LargePagePTE_trans :: "(paddr) \<Rightarrow> (bool) \<Rightarrow> (bool) \<Rightarrow> (vmrights) \<Rightarrow> pte" ("LargePagePTE'_ \<lparr> pteFrame= _, pteCacheable= _, pteExecuteNever= _, pteRights= _ \<rparr>")
 where
-  "LargePagePTE_ \<lparr> pteFrame= v0, pteCacheable= v1, pteGlobal= v2, pteExecuteNever= v3, pteRights= v4 \<rparr> == LargePagePTE v0 v1 v2 v3 v4"
+  "LargePagePTE_ \<lparr> pteFrame= v0, pteCacheable= v1, pteExecuteNever= v2, pteRights= v3 \<rparr> == LargePagePTE v0 v1 v2 v3"
 
 abbreviation (input)
-  SmallPagePTE_trans :: "(paddr) \<Rightarrow> (bool) \<Rightarrow> (bool) \<Rightarrow> (bool) \<Rightarrow> (vmrights) \<Rightarrow> pte" ("SmallPagePTE'_ \<lparr> pteFrame= _, pteCacheable= _, pteGlobal= _, pteExecuteNever= _, pteRights= _ \<rparr>")
+  SmallPagePTE_trans :: "(paddr) \<Rightarrow> (bool) \<Rightarrow> (bool) \<Rightarrow> (vmrights) \<Rightarrow> pte" ("SmallPagePTE'_ \<lparr> pteFrame= _, pteCacheable= _, pteExecuteNever= _, pteRights= _ \<rparr>")
 where
-  "SmallPagePTE_ \<lparr> pteFrame= v0, pteCacheable= v1, pteGlobal= v2, pteExecuteNever= v3, pteRights= v4 \<rparr> == SmallPagePTE v0 v1 v2 v3 v4"
+  "SmallPagePTE_ \<lparr> pteFrame= v0, pteCacheable= v1, pteExecuteNever= v2, pteRights= v3 \<rparr> == SmallPagePTE v0 v1 v2 v3"
 
 definition
   isInvalidPTE :: "pte \<Rightarrow> bool"
@@ -256,14 +208,14 @@ definition
   isLargePagePTE :: "pte \<Rightarrow> bool"
 where
  "isLargePagePTE v \<equiv> case v of
-    LargePagePTE v0 v1 v2 v3 v4 \<Rightarrow> True
+    LargePagePTE v0 v1 v2 v3 \<Rightarrow> True
   | _ \<Rightarrow> False"
 
 definition
   isSmallPagePTE :: "pte \<Rightarrow> bool"
 where
  "isSmallPagePTE v \<equiv> case v of
-    SmallPagePTE v0 v1 v2 v3 v4 \<Rightarrow> True
+    SmallPagePTE v0 v1 v2 v3 \<Rightarrow> True
   | _ \<Rightarrow> False"
 
 datatype vmattributes =
@@ -343,57 +295,17 @@ lemma armPageCacheable_armPageCacheable_update [simp]:
 definition
 fromPAddr :: "paddr \<Rightarrow> machine_word"
 where
-"fromPAddr \<equiv> Platform.ARM.fromPAddr"
+"fromPAddr \<equiv> Platform.ARM_HYP.fromPAddr"
 
 definition
 pageColourBits :: "nat"
 where
-"pageColourBits \<equiv> Platform.ARM.pageColourBits"
+"pageColourBits \<equiv> Platform.ARM_HYP.pageColourBits"
 
 definition
 clearExMonitor :: "unit machine_monad"
 where
 "clearExMonitor\<equiv> return ()"
-
-definition
-getHSR :: "machine_word machine_monad"
-where
-"getHSR \<equiv> error []"
-
-definition
-setHCR :: "machine_word \<Rightarrow> unit machine_monad"
-where
-"setHCR _hcr \<equiv> error []"
-
-definition
-getHDFAR :: "vptr machine_monad"
-where
-"pdBits \<equiv> pageBits + 2"
-
-definition
-ptBits :: "nat"
-where
-"addressTranslateS1CPR \<equiv> error []"
-
-definition
-getSCTLR :: "machine_word machine_monad"
-where
-"getSCTLR \<equiv> error []"
-
-definition
-setSCTLR :: "machine_word \<Rightarrow> unit machine_monad"
-where
-"setSCTLR _sctlr \<equiv> error []"
-
-definition
-getACTLR :: "machine_word machine_monad"
-where
-"getACTLR \<equiv> error []"
-
-definition
-setACTLR :: "machine_word \<Rightarrow> unit machine_monad"
-where
-"setACTLR _actlr \<equiv> error []"
 
 definition
 "pteBits\<equiv> (3 ::nat)"
@@ -431,74 +343,14 @@ where
 "vgicIRQMask \<equiv> 3 `~shiftL~` 28"
 
 definition
-get_gic_vcpu_ctrl_hcr :: "machine_word machine_monad"
-where
-"get_gic_vcpu_ctrl_hcr \<equiv> error []"
-
-definition
-set_gic_vcpu_ctrl_hcr :: "machine_word \<Rightarrow> unit machine_monad"
-where
-"set_gic_vcpu_ctrl_hcr \<equiv> error []"
-
-definition
-get_gic_vcpu_ctrl_vmcr :: "machine_word machine_monad"
-where
-"get_gic_vcpu_ctrl_vmcr \<equiv> error []"
-
-definition
-set_gic_vcpu_ctrl_vmcr :: "machine_word \<Rightarrow> unit machine_monad"
-where
-"set_gic_vcpu_ctrl_vmcr \<equiv> error []"
-
-definition
-get_gic_vcpu_ctrl_apr :: "machine_word machine_monad"
-where
-"get_gic_vcpu_ctrl_apr \<equiv> error []"
-
-definition
-set_gic_vcpu_ctrl_apr :: "machine_word \<Rightarrow> unit machine_monad"
-where
-"set_gic_vcpu_ctrl_apr \<equiv> error []"
-
-definition
-get_gic_vcpu_ctrl_vtr :: "machine_word machine_monad"
-where
-"get_gic_vcpu_ctrl_vtr \<equiv> error []"
-
-definition
-get_gic_vcpu_ctrl_eisr0 :: "machine_word machine_monad"
-where
-"get_gic_vcpu_ctrl_eisr0 \<equiv> error []"
-
-definition
-get_gic_vcpu_ctrl_eisr1 :: "machine_word machine_monad"
-where
-"get_gic_vcpu_ctrl_eisr1 \<equiv> error []"
-
-definition
-get_gic_vcpu_ctrl_misr :: "machine_word machine_monad"
-where
-"get_gic_vcpu_ctrl_misr \<equiv> error []"
-
-definition
-get_gic_vcpu_ctrl_lr :: "nat \<Rightarrow> machine_word machine_monad"
-where
-"get_gic_vcpu_ctrl_lr \<equiv> error []"
-
-definition
-set_gic_vcpu_ctrl_lr :: "nat \<Rightarrow> machine_word \<Rightarrow> unit machine_monad"
-where
-"set_gic_vcpu_ctrl_lr \<equiv> error []"
-
-definition
 physBase :: "paddr"
 where
-"physBase \<equiv> toPAddr Platform.ARM.physBase"
+"physBase \<equiv> toPAddr Platform.ARM_HYP.physBase"
 
 definition
 kernelBase :: "vptr"
 where
-"kernelBase \<equiv> Platform.ARM.kernelBase"
+"kernelBase \<equiv> Platform.ARM_HYP.kernelBase"
 
 
 end
@@ -507,10 +359,10 @@ context begin interpretation Arch .
 requalify_types vmrights
 end
 
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 end
-qualify ARM_H (in Arch) 
+qualify ARM_HYP_H (in Arch) 
 (* vmrights instance proofs *)
 (*<*)
 instantiation vmrights :: enum begin
@@ -556,53 +408,76 @@ end
 
 (*>*)
 end_qualify
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 
 definition
-wordFromPDE :: "pde \<Rightarrow> machine_word"
+hapFromVMRights :: "vmrights \<Rightarrow> machine_word"
 where
-"wordFromPDE x0\<equiv> (case x0 of
-    InvalidPDE \<Rightarrow>    0
-  | (PageTablePDE table parity domain) \<Rightarrow>    1 ||
-    (fromIntegral table && 0xfffffc00) ||
-    (if parity then (1 << 9) else 0) ||
-    ((domain && 0xf) `~shiftL~` 5)
-  | (SectionPDE frame parity domain cacheable global xn rights) \<Rightarrow>    2 ||
-    (fromIntegral frame && 0xfff00000) ||
-    (if parity then (1 << 9) else 0) ||
-    (if cacheable then (1 << 2) || (1 << 3) else 0) ||
-    (if xn then (1 << 4) else 0) ||
-    ((domain && 0xf) `~shiftL~` 5) ||
-    (if global then 0 else bit 17) ||
-    (fromIntegral $ fromEnum rights `~shiftL~` 10)
-  | (SuperSectionPDE frame parity cacheable global xn rights) \<Rightarrow>    2 ||
-    (1 << 18) ||
-    (fromIntegral frame && 0xff000000) ||
-    (if parity then (1 << 9) else 0) ||
-    (if cacheable then (1 << 2) || (1 << 3) else 0) ||
-    (if xn then (1 << 4) else 0) ||
-    (if global then 0 else bit 17) ||
-    (fromIntegral $ fromEnum rights `~shiftL~` 10)
+"hapFromVMRights x0\<equiv> (case x0 of
+    VMKernelOnly \<Rightarrow>    0
+  | VMNoAccess \<Rightarrow>    0
+  | VMReadOnly \<Rightarrow>    1
+  | VMReadWrite \<Rightarrow>    3
   )"
 
 definition
-wordFromPTE :: "pte \<Rightarrow> machine_word"
+wordsFromPDE :: "pde \<Rightarrow> machine_word list"
 where
-"wordFromPTE x0\<equiv> (case x0 of
-    InvalidPTE \<Rightarrow>    0
-  | (LargePagePTE frame cacheable global xn rights) \<Rightarrow>    1 ||
-    (fromIntegral frame && 0xffff0000) ||
-    (if cacheable then (1 << 2) || (1 << 3) else 0) ||
-    (if global then 0 else bit 11) ||
-    (if xn then (1 << 15) else 0) ||
-    (fromIntegral $ fromEnum rights `~shiftL~` 4)
-  | (SmallPagePTE frame cacheable global xn rights) \<Rightarrow>    2 ||
-    (fromIntegral frame && 0xfffff000) ||
-    (if xn then 1 else 0) ||
-    (if cacheable then (1 << 2) || (1 << 3) else 0) ||
-    (if global then 0 else bit 11) ||
-    (fromIntegral $ fromEnum rights `~shiftL~` 4)
+"wordsFromPDE x0\<equiv> (case x0 of
+    InvalidPDE \<Rightarrow>    [0, 0]
+  | (PageTablePDE table) \<Rightarrow>  
+    let
+     w0 = 3 || (fromIntegral table && 0xfffff000)
+    in
+    [w0, 0]
+  | (SectionPDE frame cacheable xn rights) \<Rightarrow>  
+    let
+     w1 = 0 || (if xn then (1 << 22) else 0);
+          w0 = 1 ||
+               (fromIntegral frame && 0xfffff000) ||
+               (1 << 10) ||
+               (hapFromVMRights rights `~shiftL~` 6) ||
+               (if cacheable then 0xf `~shiftL~` 2 else 0)
+    in
+    [w0, w1]
+  | (SuperSectionPDE frame cacheable xn rights) \<Rightarrow>  
+    let
+     w1 = 0 || (if xn then (1 << 22) else 0) || bit 20;
+          w0 = 1 ||
+               (fromIntegral frame && 0xfffff000) ||
+               (1 << 10) ||
+               (hapFromVMRights rights `~shiftL~` 6) ||
+               (if cacheable then 0xf `~shiftL~` 2 else 0)
+    in
+    [w0, w1]
+  )"
+
+definition
+wordsFromPTE :: "pte \<Rightarrow> machine_word list"
+where
+"wordsFromPTE x0\<equiv> (case x0 of
+    InvalidPTE \<Rightarrow>    [0, 0]
+  | (SmallPagePTE frame cacheable xn rights) \<Rightarrow>  
+    let
+     w1 = 0 || (if xn then (1 << 22) else 0) || bit 20;
+          w0 = 3 ||
+               (fromIntegral frame && 0xfffff000) ||
+               (1 << 10) ||
+               (hapFromVMRights rights `~shiftL~` 6) ||
+               (if cacheable then 0xf `~shiftL~` 2 else 0)
+    in
+    [w0, w1]
+  | (LargePagePTE frame cacheable xn rights) \<Rightarrow>  
+    let
+     w1 = 0 || (if xn then (1 << 22) else 0);
+          w0 = 3 ||
+               (fromIntegral frame && 0xfffff000) ||
+               (1 << 10) ||
+               (hapFromVMRights rights `~shiftL~` 6) ||
+               (if cacheable then 0xf `~shiftL~` 2 else 0)
+    in
+    [w0, w1]
   )"
 
 

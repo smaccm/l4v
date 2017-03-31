@@ -1,3 +1,5 @@
+(* THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT EDIT. *)
+(* instead, see the skeleton file ArchRetype_H.thy *)
 (*
  * Copyright 2014, General Dynamics C4 Systems
  *
@@ -15,9 +17,10 @@ imports
   ArchRetypeDecls_H
   ArchVSpaceDecls_H
   Hardware_H
+  VCPU_H
   "../KI_Decls_H"
 begin
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 defs deriveCap_def:
 "deriveCap x0 x1\<equiv> (let c = x1 in
@@ -35,6 +38,8 @@ defs deriveCap_def:
   then   returnOk c
   else if isASIDPoolCap c
   then   returnOk c
+  else if isVCPUCap c
+  then   returnOk c
   else undefined
   )"
 
@@ -50,16 +55,22 @@ defs maskCapRights_def:
   )"
 
 defs finaliseCap_def:
-"finaliseCap x0 x1\<equiv> (case (x0, x1) of
-    ((ASIDPoolCap ptr b), True) \<Rightarrow>    (do
+"finaliseCap x0 x1\<equiv> (let (cap, bl) = (x0, x1) in
+  if isASIDPoolCap cap \<and> bl
+  then let b = capASIDBase cap; ptr = capASIDPool cap
+  in   (do
     deleteASIDPool b ptr;
     return NullCap
-    od)
-  | ((PageDirectoryCap ptr (Some a)), True) \<Rightarrow>    (do
+  od)
+  else if isPageDirectoryCap cap \<and> bl \<and> capPDMappedASID cap \<noteq> None
+  then let a = the (capPDMappedASID cap); ptr = capPDBasePtr cap
+  in   (do
     deleteASID a ptr;
     return NullCap
   od)
-  | ((PageTableCap ptr (Some (a, v))), True) \<Rightarrow>    (do
+  else if isPageTableCap cap \<and> bl \<and> capPTMappedAddress cap \<noteq> None
+  then let (a, v) = the (capPTMappedAddress cap); ptr = capPTBasePtr cap
+  in   (do
     unmapPageTable a v ptr;
     return NullCap
   od)
@@ -77,102 +88,6 @@ defs finaliseCap_def:
     return NullCap
   od)
   else   return NullCap
-  )"
-
-defs resetMemMapping_def:
-"resetMemMapping x0\<equiv> (case x0 of
-    (PageCap p rts sz _) \<Rightarrow>    PageCap p rts sz Nothing
-  | (PageTableCap ptr _) \<Rightarrow>    PageTableCap ptr Nothing
-  | (PageDirectoryCap ptr _) \<Rightarrow>    PageDirectoryCap ptr Nothing
-  | cap \<Rightarrow>    cap
-  )"
-
-defs recycleCap_def:
-"recycleCap is_final x1 \<equiv> (let cap = x1 in
-  if isPageCap cap
-  then   (do
-      doMachineOp $ clearMemory (capVPBasePtr cap)
-          (1 `~shiftL~` (pageBitsForSize $ capVPSize cap));
-      finaliseCap cap is_final;
-      return $ resetMemMapping cap
-  od)
-  else if isPageTableCap cap
-  then let ptr = capPTBasePtr cap
-  in   (do
-    pteBits \<leftarrow> return ( objBits InvalidPTE);
-    slots \<leftarrow> return ( [ptr, ptr + bit pteBits  .e.  ptr + bit ptBits - 1]);
-    mapM_x (flip storePTE InvalidPTE) slots;
-    doMachineOp $
-        cleanCacheRange_PoU (VPtr $ fromPPtr ptr)
-                            (VPtr $ fromPPtr ptr + (1 `~shiftL~` ptBits) - 1)
-                            (addrFromPPtr ptr);
-    (case capPTMappedAddress cap of
-          None \<Rightarrow>   return ()
-        | Some (a, v) \<Rightarrow>   (do
-            mapped \<leftarrow> pageTableMapped a v ptr;
-            when (mapped \<noteq> Nothing) $ invalidateTLBByASID a
-        od)
-        );
-    finaliseCap cap is_final;
-    return (if is_final then resetMemMapping cap else cap)
-  od)
-  else if isPageDirectoryCap cap
-  then let ptr = capPDBasePtr cap
-  in   (do
-    pdeBits \<leftarrow> return ( objBits InvalidPDE);
-    kBaseEntry \<leftarrow> return ( fromVPtr kernelBase
-                        `~shiftR~` pageBitsForSize ARMSection);
-    indices \<leftarrow> return ( [0  .e.  kBaseEntry - 1]);
-    offsets \<leftarrow> return ( map (PPtr \<circ> flip shiftL pdeBits) indices);
-    slots \<leftarrow> return ( map (\<lambda> x. x + ptr) offsets);
-    mapM_x (flip storePDE InvalidPDE) slots;
-    doMachineOp $
-        cleanCacheRange_PoU (VPtr $ fromPPtr ptr)
-                            (VPtr $ fromPPtr ptr + (1 `~shiftL~` pdBits) - 1)
-                            (addrFromPPtr ptr);
-    (case capPDMappedASID cap of
-          None \<Rightarrow>   return ()
-        | Some a \<Rightarrow>   (
-            ignoreFailure $ ((doE
-                pd' \<leftarrow> findPDForASID a;
-                withoutFailure $ when (ptr = pd') $ invalidateTLBByASID a
-            odE)
-                                                                          )
-        )
-        );
-    finaliseCap cap is_final;
-    return (if is_final then resetMemMapping cap else cap)
-  od)
-  else if isASIDControlCap cap
-  then   return ASIDControlCap
-  else if isASIDPoolCap cap
-  then let base = capASIDBase cap; ptr = capASIDPool cap
-  in   (do
-    asidTable \<leftarrow> gets (armKSASIDTable \<circ> ksArchState);
-    when (asidTable (asidHighBitsOf base) = Just ptr) $ (do
-        deleteASIDPool base ptr;
-        setObject ptr (makeObject ::asidpool);
-        asidTable \<leftarrow> gets (armKSASIDTable \<circ> ksArchState);
-        asidTable' \<leftarrow> return ( asidTable aLU [(asidHighBitsOf base, Just ptr)]);
-        modify (\<lambda> s. s \<lparr>
-            ksArchState := (ksArchState s) \<lparr> armKSASIDTable := asidTable' \<rparr>\<rparr>)
-    od);
-    return cap
-  od)
-  else if isVCPUCap cap
-  then let vcpu = capVCPUPtr cap
-  in   (do
-    vcpuFinalise vcpu;
-    setObject vcpu (makeObject ::vcpu);
-    return cap
-  od)
-  else undefined
-  )"
-
-defs hasRecycleRights_def:
-"hasRecycleRights x0\<equiv> (case x0 of
-    (PageCap _ rights _ _) \<Rightarrow>    rights = VMReadWrite
-  | _ \<Rightarrow>    True
   )"
 
 defs sameRegionAs_def:
@@ -198,6 +113,8 @@ defs sameRegionAs_def:
   else if isASIDPoolCap a \<and> isASIDPoolCap b
   then  
     capASIDPool a = capASIDPool b
+  else if isVCPUCap a \<and> isVCPUCap b
+  then   capVCPUPtr a = capVCPUPtr b
   else   False
   )"
 
@@ -214,63 +131,54 @@ defs sameObjectAs_def:
   in  
     (ptrA = capVPBasePtr b) \<and> (capVPSize a = capVPSize b)
         \<and> (ptrA \<le> ptrA + bit (pageBitsForSize $ capVPSize a) - 1)
+        \<and> (capVPIsDevice a = capVPIsDevice b)
   else   sameRegionAs a b
   )"
 
-definition
-"createPageObject ptr numPages\<equiv> (do
-    addrs \<leftarrow> placeNewObject ptr UserData numPages;
-    doMachineOp $ initMemory (PPtr $ fromPPtr ptr) (1 `~shiftL~` (pageBits + numPages) );
-    return addrs
-od)"
+defs placeNewDataObject_def:
+"placeNewDataObject regionBase sz isDevice \<equiv> if isDevice
+    then placeNewObject regionBase UserDataDevice sz
+    else placeNewObject regionBase UserData sz"
 
 defs createObject_def:
-"createObject t regionBase arg3 \<equiv>
+"createObject t regionBase arg3 isDevice \<equiv>
     let funupd = (\<lambda> f x v y. if y = x then v else f y) in
-    let pointerCast = PPtr \<circ> fromPPtr
+    let pointerCast = PPtr \<circ> fromPPtr in
+    let mkPageCap = \<lambda> sz. PageCap isDevice (pointerCast regionBase) VMReadWrite sz Nothing
     in (case t of 
         APIObjectType v2 \<Rightarrow> 
             haskell_fail []
         | SmallPageObject \<Rightarrow>  (do
-            createPageObject regionBase 0;
+            placeNewDataObject regionBase 0 isDevice;
             modify (\<lambda> ks. ks \<lparr> gsUserPages :=
               funupd (gsUserPages ks)
                      (fromPPtr regionBase) (Just ARMSmallPage)\<rparr>);
-            return $ PageCap (pointerCast regionBase)
-                  VMReadWrite ARMSmallPage Nothing
+            return $ mkPageCap ARMSmallPage
         od)
         | LargePageObject \<Rightarrow>  (do
-            createPageObject regionBase 4;
+            placeNewDataObject regionBase 4 isDevice;
             modify (\<lambda> ks. ks \<lparr> gsUserPages :=
               funupd (gsUserPages ks)
                      (fromPPtr regionBase) (Just ARMLargePage)\<rparr>);
-            return $ PageCap (pointerCast regionBase)
-                  VMReadWrite ARMLargePage Nothing
+            return $ mkPageCap ARMLargePage
         od)
         | SectionObject \<Rightarrow>  (do
-            createPageObject regionBase 8;
+            placeNewDataObject regionBase 9 isDevice;
             modify (\<lambda> ks. ks \<lparr> gsUserPages :=
               funupd (gsUserPages ks)
                      (fromPPtr regionBase) (Just ARMSection)\<rparr>);
-            return $ PageCap (pointerCast regionBase)
-                  VMReadWrite ARMSection Nothing
+            return $ mkPageCap ARMSection
         od)
         | SuperSectionObject \<Rightarrow>  (do
-            createPageObject regionBase 12;
+            placeNewDataObject regionBase 13 isDevice;
             modify (\<lambda> ks. ks \<lparr> gsUserPages :=
               funupd (gsUserPages ks)
                      (fromPPtr regionBase) (Just ARMSuperSection)\<rparr>);
-            return $ PageCap (pointerCast regionBase)
-                  VMReadWrite ARMSuperSection Nothing
+            return $ mkPageCap ARMSuperSection
         od)
         | PageTableObject \<Rightarrow>  (do
             ptSize \<leftarrow> return ( ptBits - objBits (makeObject ::pte));
-            regionSize \<leftarrow> return ( (1 `~shiftL~` ptBits));
             placeNewObject regionBase (makeObject ::pte) ptSize;
-            doMachineOp $
-                cleanCacheRange_PoU (VPtr $ fromPPtr regionBase)
-                      (VPtr $ fromPPtr regionBase + regionSize - 1)
-                      (addrFromPPtr regionBase);
             return $ PageTableCap (pointerCast regionBase) Nothing
         od)
         | PageDirectoryObject \<Rightarrow>  (do
@@ -291,27 +199,39 @@ defs createObject_def:
         )"
 
 defs decodeInvocation_def:
-"decodeInvocation \<equiv> decodeARMMMUInvocation"
+"decodeInvocation label args capIndex slot cap extraCaps \<equiv>
+    (case cap of
+         VCPUCap _ \<Rightarrow>   decodeARMVCPUInvocation label args capIndex slot cap extraCaps
+       | _ \<Rightarrow>   decodeARMMMUInvocation label args capIndex slot cap extraCaps
+       )"
 
 defs performInvocation_def:
-"performInvocation \<equiv> performARMMMUInvocation"
+"performInvocation i \<equiv>
+    (let inv = i
+                 in case inv of InvokeVCPU iv \<Rightarrow>  (
+                     withoutPreemption $ performARMVCPUInvocation iv
+                 )
+                 | _ \<Rightarrow>  performARMMMUInvocation i
+                 )"
 
 defs capUntypedPtr_def:
 "capUntypedPtr x0\<equiv> (case x0 of
-    (PageCap ((* PPtr *) p) _ _ _) \<Rightarrow>    PPtr p
+    (PageCap _ ((* PPtr *) p) _ _ _) \<Rightarrow>    PPtr p
   | (PageTableCap ((* PPtr *) p) _) \<Rightarrow>    PPtr p
   | (PageDirectoryCap ((* PPtr *) p) _) \<Rightarrow>    PPtr p
   | ASIDControlCap \<Rightarrow>    error []
   | (ASIDPoolCap ((* PPtr *) p) _) \<Rightarrow>    PPtr p
+  | (VCPUCap ((* PPtr *) p)) \<Rightarrow>    PPtr p
   )"
 
 defs capUntypedSize_def:
 "capUntypedSize x0\<equiv> (case x0 of
-    (PageCap _ _ sz _) \<Rightarrow>    1 `~shiftL~` pageBitsForSize sz
-  | (PageTableCap _ _) \<Rightarrow>    1 `~shiftL~` 10
-  | (PageDirectoryCap _ _) \<Rightarrow>    1 `~shiftL~` 14
-  | (ASIDControlCap ) \<Rightarrow>    1 `~shiftL~` (asidHighBits + 2)
-  | (ASIDPoolCap _ _) \<Rightarrow>    1 `~shiftL~` (asidLowBits + 2)
+    (PageCap _ _ _ sz _) \<Rightarrow>    bit (pageBitsForSize sz)
+  | (PageTableCap _ _) \<Rightarrow>    bit ptBits
+  | (PageDirectoryCap _ _) \<Rightarrow>    bit pdBits
+  | (ASIDControlCap ) \<Rightarrow>    bit (asidHighBits + 2)
+  | (ASIDPoolCap _ _) \<Rightarrow>    bit (asidLowBits + 2)
+  | (VCPUCap _) \<Rightarrow>    bit vcpuBits
   )"
 
 defs prepareThreadDelete_def:

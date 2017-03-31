@@ -24,7 +24,7 @@ where
 "callKernel ev\<equiv> (do
     runErrorT $ handleEvent ev
         `~catchError~` (\<lambda> _. withoutPreemption $ (do
-                      irq \<leftarrow> doMachineOp getActiveIRQ;
+                      irq \<leftarrow> doMachineOp (getActiveIRQ True);
                       when (isJust irq) $ handleInterrupt (fromJust irq)
         od)
                                                                         );

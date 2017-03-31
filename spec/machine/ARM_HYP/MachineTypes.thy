@@ -1,3 +1,5 @@
+(* THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT EDIT. *)
+(* instead, see the skeleton file MachineTypes.thy *)
 (*
  * Copyright 2014, General Dynamics C4 Systems
  *
@@ -17,6 +19,7 @@ imports
   Platform
 begin
 context Arch begin global_naming ARM_HYP
+
 
 text {*
   An implementation of the machine's types, defining register set
@@ -44,20 +47,47 @@ datatype register =
   | LR_svc
   | FaultInstruction
   | CPSR
+  | TPIDRURW
 
 type_synonym machine_word = "word32"
+
+datatype vcpureg =
+    VCPURegSCTLR
+  | VCPURegLRsvc
+  | VCPURegSPsvc
+  | VCPURegLRabt
+  | VCPURegSPabt
+  | VCPURegLRund
+  | VCPURegSPund
+  | VCPURegLRirq
+  | VCPURegSPirq
+  | VCPURegLRfiq
+  | VCPURegSPfiq
+  | VCPURegR8fiq
+  | VCPURegR9fiq
+  | VCPURegR10fiq
+  | VCPURegR11fiq
+  | VCPURegR12fiq
 
 consts'
 initContext :: "(register * machine_word) list"
 
-consts'
-sanitiseRegister :: "register \<Rightarrow> machine_word \<Rightarrow> machine_word"
-
 (*<*)
+
+type_synonym machine_word_len = 32
+
+definition
+  word_size_bits :: "'a :: numeral"
+where
+  "word_size_bits \<equiv> 2"
+
 end
+
 context begin interpretation Arch .
-requalify_types register
+requalify_types register vcpureg
+
 end
+
 context Arch begin global_naming ARM_HYP
 
 end
@@ -86,7 +116,8 @@ definition
       LR,
       LR_svc,
       FaultInstruction,
-      CPSR
+      CPSR,
+      TPIDRURW
     ]"
 
 
@@ -123,6 +154,67 @@ end
 end_qualify
 context Arch begin global_naming ARM_HYP
 
+end
+qualify ARM_HYP (in Arch) 
+(* vcpureg instance proofs *)
+(*<*)
+instantiation vcpureg :: enum begin
+interpretation Arch .
+definition
+  enum_vcpureg: "enum_class.enum \<equiv> 
+    [ 
+      VCPURegSCTLR,
+      VCPURegLRsvc,
+      VCPURegSPsvc,
+      VCPURegLRabt,
+      VCPURegSPabt,
+      VCPURegLRund,
+      VCPURegSPund,
+      VCPURegLRirq,
+      VCPURegSPirq,
+      VCPURegLRfiq,
+      VCPURegSPfiq,
+      VCPURegR8fiq,
+      VCPURegR9fiq,
+      VCPURegR10fiq,
+      VCPURegR11fiq,
+      VCPURegR12fiq
+    ]"
+
+
+definition
+  "enum_class.enum_all (P :: vcpureg \<Rightarrow> bool) \<longleftrightarrow> Ball UNIV P"
+
+definition
+  "enum_class.enum_ex (P :: vcpureg \<Rightarrow> bool) \<longleftrightarrow> Bex UNIV P"
+
+  instance
+  apply intro_classes
+   apply (safe, simp)
+   apply (case_tac x)
+  apply (simp_all add: enum_vcpureg enum_all_vcpureg_def enum_ex_vcpureg_def)
+  by fast+
+end
+
+instantiation vcpureg :: enum_alt
+begin
+interpretation Arch .
+definition
+  enum_alt_vcpureg: "enum_alt \<equiv> 
+    alt_from_ord (enum :: vcpureg list)"
+instance ..
+end
+
+instantiation vcpureg :: enumeration_both
+begin
+interpretation Arch .
+instance by (intro_classes, simp add: enum_alt_vcpureg)
+end
+
+(*>*)
+end_qualify
+context Arch begin global_naming ARM_HYP
+
 (*>*)
 definition
 "capRegister \<equiv> R0"
@@ -143,19 +235,19 @@ definition
 "gpRegisters \<equiv> [R2, R3, R4, R5, R6, R7, LR]"
 
 definition
+"tpidrurwRegister \<equiv> TPIDRURW"
+
+definition
 "exceptionMessage \<equiv> [FaultInstruction, SP, CPSR]"
 
 definition
 "syscallMessage \<equiv> [R0  .e.  R7] @ [FaultInstruction, SP, LR, CPSR]"
 
+definition
+"elr_hyp \<equiv> LR_svc"
+
 defs initContext_def:
 "initContext\<equiv> [(CPSR,0x150)]"
-
-defs sanitiseRegister_def:
-"sanitiseRegister x0 v\<equiv> (case x0 of
-    CPSR \<Rightarrow>    (v && 0xf8000000) || 0x150
-  | _ \<Rightarrow>    v
-  )"
 
 
 section "Machine State"
@@ -191,6 +283,7 @@ record
   irq_masks :: "ARM_HYP.irq \<Rightarrow> bool"
   irq_state :: nat
   underlying_memory :: "word32 \<Rightarrow> word8"
+  device_state :: "word32 \<Rightarrow> word8 option"
   exclusive_state :: ARM_HYP.exclusive_monitors
   machine_state_rest :: ARM_HYP.machine_state_rest
 
@@ -245,6 +338,7 @@ definition
  "init_machine_state \<equiv> \<lparr> irq_masks = init_irq_masks,
                          irq_state = 0,
                          underlying_memory = init_underlying_memory,
+                         device_state = empty,
                          exclusive_state = default_exclusive_state,
                          machine_state_rest = undefined \<rparr>"
 
@@ -284,7 +378,7 @@ datatype vmfault_type =
   | ARMPrefetchAbort
 
 datatype hyp_fault_type =
-    ARMNoHypFaults
+    ARMVCPUFault word32
 
 definition
 pageBits :: "nat"
@@ -297,9 +391,27 @@ where
 "pageBitsForSize x0\<equiv> (case x0 of
     ARMSmallPage \<Rightarrow>    12
   | ARMLargePage \<Rightarrow>    16
-  | ARMSection \<Rightarrow>    20
-  | ARMSuperSection \<Rightarrow>    24
+  | ARMSection \<Rightarrow>    21
+  | ARMSuperSection \<Rightarrow>    25
   )"
+
+definition
+"hcrVCPU\<equiv>  (0x87039 ::machine_word)"
+
+definition
+"hcrNative\<equiv> (0xfe8703b ::machine_word)"
+
+definition
+"vgicHCREN\<equiv> (0x1 ::machine_word)"
+
+definition
+"sctlrDefault\<equiv> (0xc5187c ::machine_word)"
+
+definition
+"actlrDefault\<equiv> (0x40 ::machine_word)"
+
+definition
+"gicVCPUMaxNumLR\<equiv> (64 ::nat)"
 
 
 end

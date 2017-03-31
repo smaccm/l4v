@@ -255,13 +255,14 @@ asidHighBitsOf :: "asid \<Rightarrow> asid"
 defs archObjSize_def:
 "archObjSize a\<equiv> (case a of
                   KOASIDPool v10 \<Rightarrow>   pageBits
-                | KOPTE v11 \<Rightarrow>   2
-                | KOPDE v12 \<Rightarrow>   2
+                | KOPTE v11 \<Rightarrow>   pteBits
+                | KOPDE v12 \<Rightarrow>   pdeBits
                 )"
 
 definition
 "newArchTCB \<equiv> ArchThread_ \<lparr>
-    atcbContext= newContext \<rparr>"
+    atcbContext= newContext
+    \<rparr>"
 
 defs atcbContextSet_def:
 "atcbContextSet uc atcb \<equiv> atcb \<lparr> atcbContext := uc \<rparr>"

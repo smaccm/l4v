@@ -1,3 +1,5 @@
+(* THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT EDIT. *)
+(* instead, see the skeleton file ArchRetypeDecls_H.thy *)
 (*
  * Copyright 2014, General Dynamics C4 Systems
  *
@@ -19,7 +21,7 @@ imports
   "../PSpaceFuns_H"
   ArchObjInsts_H
 begin
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 datatype page_table_invocation =
     PageTableUnmap arch_capability machine_word
@@ -601,7 +603,7 @@ lemma assignASID_assignASID_update [simp]:
   "assignASID (assignASID_update f v) = f (assignASID v)"
   by (cases v) simp
 
-type_synonym hyper_reg = "nat"
+type_synonym hyper_reg = "vcpureg"
 
 type_synonym hyper_reg_val = "machine_word"
 
@@ -618,6 +620,7 @@ datatype invocation =
   | InvokePage page_invocation
   | InvokeASIDControl asidcontrol_invocation
   | InvokeASIDPool asidpool_invocation
+  | InvokeVCPU vcpuinvocation
 
 datatype irqcontrol_invocation =
     ARMNoArchIRQControl
@@ -639,15 +642,6 @@ consts'
 finaliseCap :: "arch_capability \<Rightarrow> bool \<Rightarrow> capability kernel"
 
 consts'
-resetMemMapping :: "arch_capability \<Rightarrow> arch_capability"
-
-consts'
-recycleCap :: "bool \<Rightarrow> arch_capability \<Rightarrow> arch_capability kernel"
-
-consts'
-hasRecycleRights :: "arch_capability \<Rightarrow> bool"
-
-consts'
 sameRegionAs :: "arch_capability \<Rightarrow> arch_capability \<Rightarrow> bool"
 
 consts'
@@ -657,7 +651,10 @@ consts'
 sameObjectAs :: "arch_capability \<Rightarrow> arch_capability \<Rightarrow> bool"
 
 consts'
-createObject :: "object_type \<Rightarrow> machine_word \<Rightarrow> nat \<Rightarrow> arch_capability kernel"
+placeNewDataObject :: "machine_word \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> unit kernel"
+
+consts'
+createObject :: "object_type \<Rightarrow> machine_word \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> arch_capability kernel"
 
 consts'
 decodeInvocation :: "machine_word \<Rightarrow> machine_word list \<Rightarrow> cptr \<Rightarrow> machine_word \<Rightarrow> arch_capability \<Rightarrow> (capability * machine_word) list \<Rightarrow> ( syscall_error , invocation ) kernel_f"

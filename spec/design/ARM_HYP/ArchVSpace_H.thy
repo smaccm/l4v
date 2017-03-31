@@ -1,3 +1,5 @@
+(* THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT EDIT. *)
+(* instead, see the skeleton file ArchVSpace_H.thy *)
 (*
  * Copyright 2014, General Dynamics C4 Systems
  *
@@ -19,7 +21,7 @@ imports
   ArchVSpaceDecls_H
   ArchHypervisor_H
 begin
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 
 defs globalsBase_def:
@@ -35,369 +37,77 @@ defs idleThreadCode_def:
     ]"
 
 defs mapKernelWindow_def:
-"mapKernelWindow\<equiv> (do
-    baseoffset \<leftarrow> return ( kernelBase `~shiftR~` pageBitsForSize (ARMSection));
-    pdeBits \<leftarrow> return ( objBits (undefined ::pde));
-    pteBits \<leftarrow> return ( objBits (undefined ::pte));
-    ptSize \<leftarrow> return ( ptBits - pteBits);
-    pdSize \<leftarrow> return ( pdBits - pdeBits);
-    globalPD \<leftarrow> gets $ armKSGlobalPD \<circ> ksArchState;
-    globalPTs \<leftarrow> gets $ armKSGlobalPTs \<circ> ksArchState;
-    startentry \<leftarrow> return $ (PPtr (fromPPtr globalPD ));
-    deleteObjects (startentry) pdBits;
-    placeNewObject (startentry) (makeObject ::pde) pdSize;
-    forM_x [baseoffset, baseoffset+16  .e.  (bit pdSize) - 16 - 1] $ createSectionPDE;
-    forM_x [(bit pdSize) - 16, (bit pdSize) - 2] (\<lambda> offset. (do
-          virt \<leftarrow> return ( offset `~shiftL~` pageBitsForSize (ARMSection));
-          phys \<leftarrow> return ( addrFromPPtr $ PPtr $ fromVPtr virt);
-          pde \<leftarrow> return ( SectionPDE_ \<lparr>
-                  pdeFrame= phys,
-                  pdeParity= True,
-                  pdeDomain= 0,
-                  pdeCacheable= True,
-                  pdeGlobal= True,
-                  pdeExecuteNever= False,
-                  pdeRights= VMKernelOnly \<rparr>);
-          slot \<leftarrow> return ( globalPD + PPtr ((fromVPtr offset) `~shiftL~` pdeBits));
-          storePDE slot pde
-    od));
-    paddr \<leftarrow> return ( addrFromPPtr $ PPtr $ fromPPtr $ head globalPTs);
-    pde \<leftarrow> return ( PageTablePDE_ \<lparr>pdeTable= paddr ,pdeParity= True, pdeDomain= 0\<rparr>);
-    slot \<leftarrow> return ( globalPD + PPtr (((bit pdSize) - 1) `~shiftL~` pdeBits));
-    deleteObjects (PPtr $ fromPPtr $ head globalPTs) ptBits;
-    placeNewObject (PPtr $ fromPPtr $ head globalPTs) (makeObject ::pte) ptSize;
-    storePDE slot pde;
-    mapGlobalsFrame;
-    kernelDevices \<leftarrow> doMachineOp getKernelDevices;
-    mapM_x mapKernelDevice kernelDevices
-od)"
-
-defs createSectionPDE_def:
-"createSectionPDE offset\<equiv> (do
-    pdeBits \<leftarrow> return ( objBits (undefined ::pde));
-    pteBits \<leftarrow> return ( objBits (undefined ::pte));
-    globalPD \<leftarrow> gets $ armKSGlobalPD \<circ> ksArchState;
-    virt \<leftarrow> return ( fromVPtr $ offset `~shiftL~` pageBitsForSize (ARMSection));
-    phys \<leftarrow> return ( addrFromPPtr $ PPtr virt);
-    base \<leftarrow> return ( fromVPtr offset);
-    pde \<leftarrow> return ( SuperSectionPDE_ \<lparr>
-            pdeFrame= phys,
-            pdeParity= True,
-            pdeCacheable= True,
-            pdeGlobal= True,
-            pdeExecuteNever= False,
-            pdeRights= VMKernelOnly \<rparr>);
-    slots \<leftarrow> return ( map (\<lambda> n. globalPD + PPtr (n `~shiftL~` pdeBits))
-            [base  .e.  base + 15]);
-    (flip $ mapM_x ) slots (\<lambda> slot.  storePDE slot pde)
-od)"
+"mapKernelWindow \<equiv> error []"
 
 defs mapKernelDevice_def:
 "mapKernelDevice x0\<equiv> (case x0 of
-    (addr, ptr) \<Rightarrow>    (do
-    vptr \<leftarrow> return ( VPtr $ fromPPtr ptr);
-    mapKernelFrame addr vptr VMKernelOnly $ VMAttributes False False True
-    od)
+    (addr, ptr) \<Rightarrow>    error []
   )"
 
 defs activateGlobalVSpace_def:
-"activateGlobalVSpace\<equiv> (do
-    globalPD \<leftarrow> gets $ armKSGlobalPD \<circ> ksArchState;
-    doMachineOp $ (do
-        setCurrentPD $ addrFromPPtr globalPD;
-        invalidateTLB
-    od)
-od)"
+"activateGlobalVSpace \<equiv> error []"
 
 defs createITPDPTs_def:
-"createITPDPTs rootCNCap vptrStart biFrameVPtr\<equiv>  (doE
-    pdSize \<leftarrow> returnOk ( pdBits - objBits (makeObject ::pde));
-    ptSize \<leftarrow> returnOk ( ptBits - objBits (makeObject ::pte));
-    pdPPtr \<leftarrow> allocRegion pdBits;
-    doKernelOp $ placeNewObject (ptrFromPAddr pdPPtr) (makeObject::pde) pdSize;
-    pdCap \<leftarrow> returnOk $ ArchObjectCap $ PageDirectoryCap (ptrFromPAddr pdPPtr) (Just itASID);
-    slot  \<leftarrow> doKernelOp $ locateSlotCap rootCNCap biCapITPD;
-    doKernelOp $ insertInitCap slot $ pdCap;
-    slotBefore \<leftarrow> noInitFailure $ gets $ initSlotPosCur;
-    btmVPtr \<leftarrow> returnOk ( vptrStart `~shiftR~` (pdSize + pageBits) `~shiftL~` (pdSize + pageBits));
-    step \<leftarrow> returnOk ( 1 `~shiftL~` (ptSize + pageBits));
-    topVPtr \<leftarrow> returnOk ( biFrameVPtr + (bit biFrameSizeBits) - 1);
-    forME_x [btmVPtr,btmVPtr + step  .e.  topVPtr] (\<lambda> vptr. (doE
-        ptPPtr \<leftarrow> allocRegion ptBits;
-        doKernelOp $ placeNewObject (ptrFromPAddr ptPPtr) (makeObject::pte) ptSize;
-        provideCap rootCNCap $ ArchObjectCap $ PageTableCap (ptrFromPAddr ptPPtr) (Just (itASID, vptr))
-    odE));
-    slotAfter \<leftarrow> noInitFailure $ gets initSlotPosCur;
-    bootInfo \<leftarrow> noInitFailure $ gets initBootInfo;
-    bootInfo' \<leftarrow> returnOk ( bootInfo \<lparr>bifUIPDCaps := [slotBefore - 1  .e.  slotBefore - 1], bifUIPTCaps := [slotBefore  .e.  slotAfter - 1] \<rparr>);
-    noInitFailure $ modify (\<lambda> s. s \<lparr> initBootInfo := bootInfo' \<rparr>);
-    returnOk pdCap
-odE)"
+"createITPDPTs rootCNCap vptrStart biFrameVPtr \<equiv> error []"
 
 defs writeITPDPTs_def:
-"writeITPDPTs rootCNCap pdCap \<equiv>
-  (case pdCap of
-      ArchObjectCap cap \<Rightarrow>   (doE
-      doKernelOp $ copyGlobalMappings $ capPDBasePtr cap;
-      ptSlots \<leftarrow> noInitFailure $ gets $ bifUIPTCaps \<circ> initBootInfo;
-      doKernelOp $ (
-          (flip mapM) ptSlots (\<lambda> pos. (do
-              slot \<leftarrow> locateSlotCap rootCNCap pos;
-              cte \<leftarrow> getCTE slot;
-              mapITPTCap pdCap (cteCap cte)
-          od)
-           )
-      );
-      frameSlots \<leftarrow> noInitFailure $ gets $ bifUIFrameCaps \<circ> initBootInfo;
-      doKernelOp $ (do
-           (flip mapM) frameSlots (\<lambda> pos. (do
-              slot \<leftarrow> locateSlotCap rootCNCap pos;
-              cte \<leftarrow> getCTE slot;
-              mapITFrameCap pdCap (cteCap cte)
-           od)
-                                              );
-           slot \<leftarrow> locateSlotCap rootCNCap biCapITIPCBuf;
-           cte \<leftarrow> getCTE slot;
-           mapITFrameCap pdCap (cteCap cte);
-           slot \<leftarrow> locateSlotCap rootCNCap biCapBIFrame;
-           cte \<leftarrow> getCTE slot;
-           mapITFrameCap pdCap (cteCap cte)
-      od)
-      odE)
-    | _ \<Rightarrow>   haskell_fail $ (show pdCap) @ []
-    )"
+"writeITPDPTs rootCNCap pdCap \<equiv> error []"
 
 defs createITASIDPool_def:
-"createITASIDPool rootCNCap\<equiv> (doE
-    apPPtr \<leftarrow> allocRegion $ objBits (undefined ::asidpool);
-    doKernelOp $ placeNewObject (ptrFromPAddr apPPtr) (makeObject::asidpool) 0;
-    slot \<leftarrow> doKernelOp $ locateSlotCap rootCNCap biCapITASIDPool;
-    asidPoolCap \<leftarrow> returnOk $ ArchObjectCap $ ASIDPoolCap (ptrFromPAddr apPPtr) 0;
-    doKernelOp $ insertInitCap slot asidPoolCap;
-    slot \<leftarrow> doKernelOp $ locateSlotCap rootCNCap biCapASIDControl;
-    asidControlCap \<leftarrow> returnOk $ ArchObjectCap $ ASIDControlCap;
-    doKernelOp $ insertInitCap slot asidControlCap;
-    returnOk asidPoolCap
-odE)"
+"createITASIDPool rootCNCap \<equiv> error []"
 
 defs writeITASIDPool_def:
-"writeITASIDPool apCap pdCap\<equiv> (do
-    apPtr \<leftarrow> (case apCap of
-                     ArchObjectCap (ASIDPoolCap ptr _) \<Rightarrow>   return ptr
-                   | _ \<Rightarrow>   haskell_fail []
-                   );
-    pdPtr \<leftarrow> (case pdCap of
-                     ArchObjectCap (PageDirectoryCap ptr _) \<Rightarrow>   return ptr
-                   | _ \<Rightarrow>   haskell_fail []
-                   );
- ap \<leftarrow> liftM (inv ASIDPool) $  getObject apPtr;
-    ap' \<leftarrow> return ( ap aLU [(itASID, Just pdPtr)]);
-    setObject apPtr (ASIDPool ap');
-    asidTable \<leftarrow> gets (armKSASIDTable \<circ> ksArchState);
-    asidTable' \<leftarrow> return ( asidTable aLU [(asidHighBitsOf itASID, Just apPtr)]);
-    modify (\<lambda> s. s \<lparr>
-         ksArchState := (ksArchState s) \<lparr> armKSASIDTable := asidTable' \<rparr>\<rparr>)
-od)"
+"writeITASIDPool apCap pdCap \<equiv> error []"
 
 defs mapITPTCap_def:
-"mapITPTCap pdCap ptCap\<equiv> (do
-    pd \<leftarrow> (case pdCap of
-                ArchObjectCap (PageDirectoryCap ptr _) \<Rightarrow>   return ptr
-              | _ \<Rightarrow>   haskell_fail []
-              );
-    ptCap' \<leftarrow> (case ptCap of
-                    ArchObjectCap c \<Rightarrow>   return c
-                  | _ \<Rightarrow>   haskell_fail []
-                  );
-    (pt,vptr) \<leftarrow> (case ptCap' of
-                              PageTableCap pt' (Some (_, vptr')) \<Rightarrow>   return (pt', vptr')
-                            | _ \<Rightarrow>   haskell_fail $ [] @ (show ptCap)
-                            );
-    offset \<leftarrow> return ( fromVPtr $ vptr `~shiftR~` pageBitsForSize ARMSection);
-    targetSlot \<leftarrow> return ( pd + (PPtr $ offset `~shiftL~` 2));
-    pde \<leftarrow> return ( PageTablePDE_ \<lparr>
-            pdeTable= addrFromPPtr pt,
-            pdeParity= True,
-            pdeDomain= 0 \<rparr>);
-    storePDE targetSlot pde
-od)"
+"mapITPTCap pdCap ptCap \<equiv> error []"
 
 defs mapITFrameCap_def:
-"mapITFrameCap pdCap frameCap\<equiv> (do
-    pd' \<leftarrow> (case pdCap of
-                 ArchObjectCap (PageDirectoryCap ptr _) \<Rightarrow>   return ptr
-               | _ \<Rightarrow>   haskell_fail $ [] @ (show pdCap)
-               );
-    frameCap' \<leftarrow> (case frameCap of
-                       ArchObjectCap c \<Rightarrow>   return c
-                     | _ \<Rightarrow>   haskell_fail $ [] @ (show frameCap)
-                     );
-    (frame,vptr) \<leftarrow> (case frameCap' of
-                                PageCap frame' _ _ (Some (_, vptr')) \<Rightarrow>   return (frame', vptr')
-                              | _ \<Rightarrow>   haskell_fail $ [] @ (show frameCap)
-                              );
-    offset \<leftarrow> return ( fromVPtr $ vptr `~shiftR~` pageBitsForSize ARMSection);
-    pd \<leftarrow> return ( pd' + (PPtr $ offset `~shiftL~` 2));
-    pde \<leftarrow> getObject pd;
-    pt \<leftarrow> (case pde of
-                       PageTablePDE ref _ _ \<Rightarrow>   return $ ptrFromPAddr ref
-                     | _ \<Rightarrow>   haskell_fail $ [] @ (show pd) @ [] @ (show pde)
-                     );
-    offset \<leftarrow> return ( fromVPtr $ ((vptr &&(mask $ pageBitsForSize ARMSection))
-                               `~shiftR~` pageBitsForSize ARMSmallPage));
-    targetSlot \<leftarrow> return ( pt + (PPtr $ offset `~shiftL~` 2));
-    pte \<leftarrow> return ( SmallPagePTE_ \<lparr>
-            pteFrame= addrFromPPtr frame,
-            pteCacheable= True,
-            pteGlobal= False,
-            pteExecuteNever= False,
-            pteRights= VMReadWrite \<rparr>);
-    storePTE targetSlot pte
-od)"
+"mapITFrameCap pdCap frameCap \<equiv> error []"
 
 defs createIPCBufferFrame_def:
-"createIPCBufferFrame rootCNCap vptr\<equiv> (doE
-      pptr \<leftarrow> allocFrame;
-      doKernelOp $ doMachineOp $ clearMemory (ptrFromPAddr pptr) (1 `~shiftL~` pageBits);
-      cap \<leftarrow> createITFrameCap (ptrFromPAddr pptr) vptr (Just itASID) False;
-      slot \<leftarrow> doKernelOp $ locateSlotCap rootCNCap biCapITIPCBuf;
-      doKernelOp $ insertInitCap slot cap;
-      bootInfo \<leftarrow> noInitFailure $ gets (initBootInfo);
-      bootInfo' \<leftarrow> returnOk ( bootInfo \<lparr> bifIPCBufVPtr := vptr\<rparr>);
-      noInitFailure $ modify (\<lambda> s. s \<lparr>initBootInfo := bootInfo' \<rparr>);
-      returnOk cap
-odE)"
+"createIPCBufferFrame rootCNCap vptr \<equiv> error []"
 
 defs createBIFrame_def:
-"createBIFrame rootCNCap vptr nodeId numNodes\<equiv> (doE
-      pptr \<leftarrow> allocFrame;
-      bootInfo \<leftarrow> noInitFailure $ gets initBootInfo;
-      bootInfo' \<leftarrow> returnOk ( bootInfo \<lparr> bifNodeID := nodeId,
-                                 bifNumNodes := numNodes \<rparr>);
-      noInitFailure $ modify (\<lambda> s. s \<lparr>
-          initBootInfo := bootInfo',
-          initBootInfoFrame := pptr,
-          initSlotPosCur := biCapDynStart
-          \<rparr>);
-      doKernelOp $ doMachineOp $ clearMemory (ptrFromPAddr pptr) (1 `~shiftL~` pageBits);
-      cap \<leftarrow> createITFrameCap (ptrFromPAddr pptr) vptr (Just itASID) False;
-      slot \<leftarrow> doKernelOp $ locateSlotCap rootCNCap biCapBIFrame;
-      doKernelOp $ insertInitCap slot cap;
-      returnOk cap
-odE)"
+"createBIFrame rootCNCap vptr nodeId numNodes \<equiv> error []"
 
 defs createITFrameCap_def:
-"createITFrameCap pptr vptr asid large\<equiv> (doE
-    sz \<leftarrow> returnOk ( if large then ARMLargePage else ARMSmallPage);
-    addr \<leftarrow> returnOk ( (case asid of
-                      Some asid' \<Rightarrow>   Just (asid', vptr)
-                    | None \<Rightarrow>   Nothing
-                    ));
-    frame \<leftarrow> returnOk ( PageCap_ \<lparr>
-             capVPBasePtr= pptr,
-             capVPRights= VMReadWrite,
-             capVPSize= sz,
-             capVPMappedAddress= addr \<rparr>);
-    returnOk $ ArchObjectCap $ frame
-odE)"
+"createITFrameCap pptr vptr asid large \<equiv> error []"
 
 defs createFramesOfRegion_def:
-"createFramesOfRegion rootCNCap region doMap\<equiv> (doE
-    curSlotPos \<leftarrow> noInitFailure $ gets initSlotPosCur;
-    (startPPtr, endPPtr) \<leftarrow> returnOk $ fromRegion region;
-    forME_x [startPPtr,startPPtr + (bit pageBits)  .e.  endPPtr] (\<lambda> ptr. (doE
-        vptr \<leftarrow> vptrFromPPtr $ ptr;
-        frameCap \<leftarrow> if doMap then
-                    createITFrameCap ptr vptr (Just itASID) False
-                    else createITFrameCap ptr 0 Nothing False;
-        provideCap rootCNCap frameCap
-    odE));
-    slotPosAfter \<leftarrow> noInitFailure $ gets initSlotPosCur;
-    bootInfo \<leftarrow> noInitFailure $ gets initBootInfo;
-    bootInfo' \<leftarrow> returnOk ( bootInfo \<lparr> bifUIFrameCaps := [curSlotPos  .e.  slotPosAfter - 1] \<rparr>);
-    noInitFailure $ modify (\<lambda> s. s \<lparr> initBootInfo := bootInfo' \<rparr>)
-odE)"
+"createFramesOfRegion rootCNCap region doMap \<equiv> error []"
 
 defs mapGlobalsFrame_def:
-"mapGlobalsFrame\<equiv> (do
-    globalsFrame \<leftarrow> gets $ armKSGlobalsFrame \<circ> ksArchState;
-    mapKernelFrame (addrFromPPtr globalsFrame) globalsBase VMReadOnly $
-        VMAttributes True True True;
-    writeIdleCode
-od)"
+"mapGlobalsFrame \<equiv> error []"
 
 defs writeIdleCode_def:
-"writeIdleCode\<equiv> (do
-    globalsFrame \<leftarrow> gets $ armKSGlobalsFrame \<circ> ksArchState;
-    offset \<leftarrow> return ( fromVPtr $ idleThreadStart - globalsBase);
-    doMachineOp $ mapM_x
-        (split  storeWord
-        )
-        (zipE2 (globalsFrame + PPtr offset) ( globalsFrame + PPtr offset + 4) (idleThreadCode))
-od)"
+"writeIdleCode \<equiv> error []"
 
 defs mapKernelFrame_def:
-"mapKernelFrame paddr vaddr vmrights attributes\<equiv> (do
-    idx \<leftarrow> return ( fromVPtr $ ( (vaddr && (mask $ pageBitsForSize ARMSection))
-                          `~shiftR~` pageBitsForSize ARMSmallPage));
-    globalPT \<leftarrow> getARMGlobalPT;
-    pte \<leftarrow> return ( SmallPagePTE_ \<lparr>
-                 pteFrame= paddr,
-                 pteCacheable= armPageCacheable attributes,
-                 pteGlobal= True,
-                 pteExecuteNever= False,
-                 pteRights= vmrights \<rparr>);
-    storePTE (PPtr ((fromPPtr globalPT) + (idx `~shiftL~` 2))) pte
-od)"
+"mapKernelFrame paddr vaddr vmrights attributes \<equiv> error []"
 
 defs getARMGlobalPT_def:
-"getARMGlobalPT\<equiv> (do
-    pt \<leftarrow> gets (head \<circ> armKSGlobalPTs \<circ> ksArchState);
-    return pt
-od)"
+"getARMGlobalPT \<equiv> error []"
 
 defs createDeviceFrames_def:
-"createDeviceFrames rootCNodeCap\<equiv> (doE
-    deviceRegions \<leftarrow> doKernelOp $ doMachineOp getDeviceRegions;
-    (flip mapME_x) deviceRegions (\<lambda> (start,end). (doE
-        frameSize \<leftarrow> returnOk $ if (isAligned start (pageBitsForSize ARMSection))
-                         \<and> isAligned end (pageBitsForSize ARMSection)
-            then ARMSection else ARMSmallPage;
-        slotBefore \<leftarrow> noInitFailure $ gets initSlotPosCur;
-        (flip mapME_x) [start, (start + (bit (pageBitsForSize frameSize)))  .e.  (end - 1)]
-              (\<lambda> f. (doE
-                  frameCap \<leftarrow> createITFrameCap (ptrFromPAddr f) 0 Nothing (frameSize = ARMSection);
-                  provideCap rootCNodeCap frameCap
-              odE)
-                                                  );
-        slotAfter \<leftarrow> noInitFailure $ gets initSlotPosCur;
-        biDeviceRegion \<leftarrow> returnOk ( BIDeviceRegion_ \<lparr>
-                                  bidrBasePAddr= start,
-                                  bidrFrameSizeBits= fromIntegral $ pageBitsForSize frameSize,
-                                  bidrFrameCaps= SlotRegion (slotBefore, slotAfter) \<rparr>);
-        devRegions \<leftarrow> noInitFailure $ gets (bifDeviceRegions \<circ> initBootInfo);
-        devRegions' \<leftarrow> returnOk ( devRegions @ [biDeviceRegion]);
-        bootInfo \<leftarrow> noInitFailure $ gets (initBootInfo);
-        bootInfo' \<leftarrow> returnOk ( bootInfo \<lparr> bifDeviceRegions := devRegions' \<rparr>);
-        noInitFailure $ modify (\<lambda> st. st \<lparr> initBootInfo := bootInfo' \<rparr>)
-    odE)
-        );
-    bInfo \<leftarrow> noInitFailure $ gets (initBootInfo);
-    bInfo' \<leftarrow> returnOk ( bInfo \<lparr> bifNumDeviceRegions := (fromIntegral \<circ> length \<circ> bifDeviceRegions) bInfo \<rparr>);
-    noInitFailure $ modify (\<lambda> st. st \<lparr> initBootInfo := bInfo' \<rparr>)
-odE)"
+"createDeviceFrames rootCNodeCap \<equiv> error []"
 
 defs copyGlobalMappings_def:
-"copyGlobalMappings newPD\<equiv> (do
-    globalPD \<leftarrow> gets (armKSGlobalPD \<circ> ksArchState);
-    pdeBits \<leftarrow> return ( objBits (undefined ::pde));
-    pdSize \<leftarrow> return ( 1 `~shiftL~` (pdBits - pdeBits));
-    forM_x [fromVPtr kernelBase `~shiftR~` 20  .e.  pdSize - 1] (\<lambda> index. (do
-        offset \<leftarrow> return ( PPtr index `~shiftL~` pdeBits);
-        pde \<leftarrow> getObject (globalPD + offset);
-        storePDE (newPD + offset) pde
-    od))
-od)"
+"copyGlobalMappings newPD\<equiv> return ()"
+
+defs largePagePTEOffsets_def:
+"largePagePTEOffsets \<equiv>
+    let
+     pts = bit pteBits
+    in
+                             [0, PPtr pts  .e.  PPtr (15 `~shiftL~` pteBits)]"
+
+defs superSectionPDEOffsets_def:
+"superSectionPDEOffsets \<equiv>
+    let
+     pds = bit pdeBits
+    in
+                                [0, PPtr pds  .e.  PPtr (15 `~shiftL~` pdeBits)]"
 
 defs createMappingEntries_def:
 "createMappingEntries base vptr x2 vmRights attrib pd\<equiv> (case x2 of
@@ -406,7 +116,6 @@ defs createMappingEntries_def:
     returnOk $ Inl (SmallPagePTE_ \<lparr>
         pteFrame= base,
         pteCacheable= armPageCacheable attrib,
-        pteGlobal= False,
         pteExecuteNever= armExecuteNever attrib,
         pteRights= vmRights \<rparr>, [p])
     odE)
@@ -415,18 +124,14 @@ defs createMappingEntries_def:
     returnOk $ Inl (LargePagePTE_ \<lparr>
         pteFrame= base,
         pteCacheable= armPageCacheable attrib,
-        pteGlobal= False,
         pteExecuteNever= armExecuteNever attrib,
-        pteRights= vmRights \<rparr>, [p, p + 4  .e.  p + 60])
+        pteRights= vmRights \<rparr>, map (\<lambda> x. x + p) largePagePTEOffsets)
   odE)
   | ARMSection \<Rightarrow>    (doE
     p \<leftarrow> returnOk ( lookupPDSlot pd vptr);
     returnOk $ Inr (SectionPDE_ \<lparr>
         pdeFrame= base,
-        pdeParity= armParityEnabled attrib,
-        pdeDomain= 0,
         pdeCacheable= armPageCacheable attrib,
-        pdeGlobal= False,
         pdeExecuteNever= armExecuteNever attrib,
         pdeRights= vmRights \<rparr>, [p])
   odE)
@@ -434,53 +139,51 @@ defs createMappingEntries_def:
     p \<leftarrow> returnOk ( lookupPDSlot pd vptr);
     returnOk $ Inr (SuperSectionPDE_ \<lparr>
         pdeFrame= base,
-        pdeParity= armParityEnabled attrib,
         pdeCacheable= armPageCacheable attrib,
-        pdeGlobal= False,
         pdeExecuteNever= armExecuteNever attrib,
-        pdeRights= vmRights \<rparr>, [p, p + 4  .e.  p + 60])
+        pdeRights= vmRights \<rparr>, map (\<lambda> x. x + p) superSectionPDEOffsets)
   odE)
   )"
 
 defs ensureSafeMapping_def:
 "ensureSafeMapping x0\<equiv> (case x0 of
     (Inl (InvalidPTE, _)) \<Rightarrow>    returnOk ()
-  | (Inl (SmallPagePTE _ _ _ _ _, ptSlots)) \<Rightarrow>   
+  | (Inl (SmallPagePTE _ _ _ _, ptSlots)) \<Rightarrow>   
     forME_x ptSlots (\<lambda> slot. (doE
         pte \<leftarrow> withoutFailure $ getObject slot;
         (case pte of
               InvalidPTE \<Rightarrow>   returnOk ()
-            | SmallPagePTE _ _ _ _ _ \<Rightarrow>   returnOk ()
+            | SmallPagePTE _ _ _ _ \<Rightarrow>   returnOk ()
             | _ \<Rightarrow>   throw DeleteFirst
             )
     odE))
-  | (Inl (LargePagePTE _ _ _ _ _, ptSlots)) \<Rightarrow>   
+  | (Inl (LargePagePTE _ _ _ _, ptSlots)) \<Rightarrow>   
     forME_x ptSlots (\<lambda> slot. (doE
         pte \<leftarrow> withoutFailure $ getObject slot;
         (case pte of
               InvalidPTE \<Rightarrow>   returnOk ()
-            | LargePagePTE _ _ _ _ _ \<Rightarrow>   returnOk ()
+            | LargePagePTE _ _ _ _ \<Rightarrow>   returnOk ()
             | _ \<Rightarrow>   throw DeleteFirst
             )
     odE))
   | (Inr (InvalidPDE, _)) \<Rightarrow>    returnOk ()
-  | (Inr (PageTablePDE _ _ _, _)) \<Rightarrow>   
+  | (Inr (PageTablePDE _, _)) \<Rightarrow>   
     haskell_fail []
-  | (Inr (SectionPDE _ _ _ _ _ _ _, pdSlots)) \<Rightarrow>   
+  | (Inr (SectionPDE _ _ _ _, pdSlots)) \<Rightarrow>   
     forME_x pdSlots (\<lambda> slot. (doE
         pde \<leftarrow> withoutFailure $ getObject slot;
         (case pde of
               InvalidPDE \<Rightarrow>   returnOk ()
-            | SectionPDE _ _ _ _ _ _ _ \<Rightarrow>   returnOk ()
+            | SectionPDE _ _ _ _ \<Rightarrow>   returnOk ()
             | _ \<Rightarrow>   throw DeleteFirst
             )
     odE))
-  | (Inr (SuperSectionPDE _ _ _ _ _ _, pdSlots)) \<Rightarrow>   
+  | (Inr (SuperSectionPDE _ _ _ _, pdSlots)) \<Rightarrow>   
     forME_x pdSlots (\<lambda> slot. (doE
         pde \<leftarrow> withoutFailure $ getObject slot;
         (case pde of
               InvalidPDE \<Rightarrow>   returnOk ()
-            | SuperSectionPDE _ _ _ _ _ _ \<Rightarrow>   returnOk ()
+            | SuperSectionPDE _ _ _ _ \<Rightarrow>   returnOk ()
             | _ \<Rightarrow>   throw DeleteFirst
             )
     odE))
@@ -491,23 +194,19 @@ defs lookupIPCBuffer_def:
     bufferPtr \<leftarrow> threadGet tcbIPCBuffer thread;
     bufferFrameSlot \<leftarrow> getThreadBufferSlot thread;
     bufferCap \<leftarrow> getSlotCap bufferFrameSlot;
-    (let v40 = bufferCap in
-        if isArchObjectCap v40 \<and> isPageCap (capCap v40)
-        then let frame = capCap v40
-        in  (do
-            rights \<leftarrow> return ( capVPRights frame);
-            pBits \<leftarrow> return ( pageBitsForSize $ capVPSize frame);
+    (case bufferCap of
+          ArchObjectCap (PageCap False baseptr rights sz _) \<Rightarrow>   (do
+            pBits \<leftarrow> return ( pageBitsForSize sz);
             if (rights = VMReadWrite \<or> Not isReceiver \<and> rights = VMReadOnly)
               then (do
-                 ptr \<leftarrow> return ( capVPBasePtr frame +
-                           PPtr (fromVPtr bufferPtr && mask pBits));
+                 ptr \<leftarrow> return ( baseptr + PPtr (fromVPtr bufferPtr && mask pBits));
                  haskell_assert (ptr \<noteq> 0)
                             [];
                  return $ Just ptr
               od)
               else return Nothing
-        od)
-        else  return Nothing
+          od)
+        | _ \<Rightarrow>   return Nothing
         )
 od)"
 
@@ -560,7 +259,7 @@ defs lookupPTSlot_def:
     pdSlot \<leftarrow> returnOk ( lookupPDSlot pd vptr);
     pde \<leftarrow> withoutFailure $ getObject pdSlot;
     (case pde of
-          PageTablePDE _ _ _ \<Rightarrow>   (doE
+          PageTablePDE _ \<Rightarrow>   (doE
             pt \<leftarrow> returnOk ( ptrFromPAddr $ pdeTable pde);
             withoutFailure $ lookupPTSlotFromPT pt vptr
           odE)
@@ -570,28 +269,34 @@ odE)"
 
 defs lookupPTSlotFromPT_def:
 "lookupPTSlotFromPT pt vptr\<equiv> (do
-    ptIndex \<leftarrow> return ( fromVPtr $ vptr `~shiftR~` 12 && 0xff);
-    ptSlot \<leftarrow> return ( pt + (PPtr $ ptIndex `~shiftL~` 2));
+    ptIndex \<leftarrow> return ( fromVPtr $ vptr `~shiftR~` pageBits && mask (ptBits - pteBits));
+    ptSlot \<leftarrow> return ( pt + (PPtr $ ptIndex `~shiftL~` pteBits));
     checkPTAt pt;
     return ptSlot
 od)"
 
 defs lookupPDSlot_def:
 "lookupPDSlot pd vptr \<equiv>
-    let pdIndex = fromVPtr $ vptr `~shiftR~` 20
-    in pd + (PPtr $ pdIndex `~shiftL~` 2)"
+    let pdIndex = fromVPtr $ vptr `~shiftR~` (pageBits + ptBits - pteBits)
+    in pd + (PPtr $ pdIndex `~shiftL~` pdeBits)"
 
 defs handleVMFault_def:
 "handleVMFault thread x1\<equiv> (case x1 of
     ARMDataAbort \<Rightarrow>    (doE
-    addr \<leftarrow> withoutFailure $ doMachineOp getFAR;
-    fault \<leftarrow> withoutFailure $ doMachineOp getDFSR;
-    throw $ VMFault addr [0, fault && mask 14]
+    addr \<leftarrow> withoutFailure $ doMachineOp getHDFAR;
+    uaddr \<leftarrow> withoutFailure $ doMachineOp (addressTranslateS1CPR addr);
+    faddr \<leftarrow> returnOk ( (uaddr && complement (mask pageBits)) ||
+                (addr && mask pageBits));
+    fault \<leftarrow> withoutFailure $ doMachineOp getHSR;
+    throw $ ArchFault $ VMFault faddr [0, fault && 0x3ffffff]
     odE)
   | ARMPrefetchAbort \<Rightarrow>    (doE
     pc \<leftarrow> withoutFailure $ asUser thread $ getRestartPC;
-    fault \<leftarrow> withoutFailure $ doMachineOp getIFSR;
-    throw $ VMFault (VPtr pc) [1, fault && mask 14]
+    upc \<leftarrow> withoutFailure $ doMachineOp (addressTranslateS1CPR $ VPtr pc);
+    faddr \<leftarrow> returnOk ( (upc && complement (mask pageBits)) ||
+                (VPtr pc && mask pageBits));
+    fault \<leftarrow> withoutFailure $ doMachineOp getHSR;
+    throw $ ArchFault $ VMFault faddr [1, fault && 0x3ffffff]
   odE)
   )"
 
@@ -642,7 +347,7 @@ defs pageTableMapped_def:
         pdSlot \<leftarrow> returnOk ( lookupPDSlot pd vaddr);
         pde \<leftarrow> withoutFailure $ getObject pdSlot;
         (case pde of
-              PageTablePDE pt' _ _ \<Rightarrow>   returnOk $
+              PageTablePDE pt' \<Rightarrow>   returnOk $
                 if pt' = addrFromPPtr pt then Just pd else Nothing
             | _ \<Rightarrow>   returnOk Nothing)
             
@@ -680,11 +385,11 @@ defs unmapPage_def:
             p \<leftarrow> lookupPTSlot pd vptr;
             checkMappingPPtr ptr magnitude (Inl p);
             withoutFailure $ (do
-                slots \<leftarrow> return ( map (\<lambda> x. x + p) [0, 4  .e.  60]);
+                slots \<leftarrow> return ( map (\<lambda> x. x + p) largePagePTEOffsets);
                 mapM (flip storePTE InvalidPTE) slots;
                 doMachineOp $
                     cleanCacheRange_PoU (VPtr $ fromPPtr $ (head slots))
-                                        (VPtr $ (fromPPtr (last slots)) + (bit (objBits (undefined ::pte)) - 1 ))
+                                        (VPtr $ (fromPPtr (last slots)) + (bit pteBits - 1))
                                         (addrFromPPtr (head slots))
             od)
         odE)
@@ -700,11 +405,11 @@ defs unmapPage_def:
             p \<leftarrow> returnOk ( lookupPDSlot pd vptr);
             checkMappingPPtr ptr magnitude (Inr p);
             withoutFailure $ (do
-                slots \<leftarrow> return ( map (\<lambda> x. x + p) [0, 4  .e.  60]);
+                slots \<leftarrow> return ( map (\<lambda> x. x + p) superSectionPDEOffsets);
                 mapM (flip storePDE InvalidPDE) slots;
                 doMachineOp $
                     cleanCacheRange_PoU (VPtr $ fromPPtr $ (head slots))
-                                        (VPtr $ (fromPPtr  (last slots)) + (bit (objBits (undefined ::pde)) - 1))
+                                        (VPtr $ (fromPPtr (last slots)) + (bit pdeBits - 1))
                                         (addrFromPPtr (head slots))
             od)
         odE)
@@ -717,9 +422,9 @@ defs checkMappingPPtr_def:
     (Inl pt) \<Rightarrow>    (doE
     pte \<leftarrow> withoutFailure $ getObject pt;
     (case (pte, magnitude) of
-          (SmallPagePTE base _ _ _ _, ARMSmallPage) \<Rightarrow>  
+          (SmallPagePTE base _ _ _, ARMSmallPage) \<Rightarrow>  
             unlessE (base = addrFromPPtr pptr) $ throw InvalidRoot
-        | (LargePagePTE base _ _ _ _, ARMLargePage) \<Rightarrow>  
+        | (LargePagePTE base _ _ _, ARMLargePage) \<Rightarrow>  
             unlessE (base = addrFromPPtr pptr) $ throw InvalidRoot
         | _ \<Rightarrow>   throw InvalidRoot
         )
@@ -727,9 +432,9 @@ defs checkMappingPPtr_def:
   | (Inr pd) \<Rightarrow>    (doE
     pde \<leftarrow> withoutFailure $ getObject pd;
     (case (pde, magnitude) of
-          (SectionPDE base _ _ _ _ _ _, ARMSection) \<Rightarrow>  
+          (SectionPDE base _ _ _, ARMSection) \<Rightarrow>  
             unlessE (base = addrFromPPtr pptr) $ throw InvalidRoot
-        | (SuperSectionPDE base _ _ _ _ _, ARMSuperSection) \<Rightarrow>  
+        | (SuperSectionPDE base _ _ _, ARMSuperSection) \<Rightarrow>  
             unlessE (base = addrFromPPtr pptr) $ throw InvalidRoot
         | _ \<Rightarrow>   throw InvalidRoot
         )
@@ -737,10 +442,9 @@ defs checkMappingPPtr_def:
   )"
 
 defs armv_contextSwitch_HWASID_def:
-"armv_contextSwitch_HWASID pd hwasid \<equiv> (do
-   setCurrentPD $ addrFromPPtr pd;
-   setHardwareASID hwasid
-od)"
+"armv_contextSwitch_HWASID pd hwasid \<equiv> (
+   writeContextIDAndPD hwasid (addrFromPPtr pd)
+)"
 
 defs armv_contextSwitch_def:
 "armv_contextSwitch pd asid \<equiv> (do
@@ -772,10 +476,10 @@ defs setVMRoot_def:
                   ArchObjectCap (PageDirectoryCap pd (Some _)) \<Rightarrow>   checkPDNotInASIDMap pd
                 | _ \<Rightarrow>   return ()
                 );
-            globalPD \<leftarrow> gets (armKSGlobalPD \<circ> ksArchState);
-            doMachineOp $ setCurrentPD $ addrFromPPtr globalPD 
+            globalPD \<leftarrow> gets (armUSGlobalPD \<circ> ksArchState);
+            doMachineOp $ setCurrentPD $ addrFromPPtr globalPD
         od)
-                                                               )
+                                                              )
 od)"
 
 defs setVMRootForFlush_def:
@@ -783,8 +487,8 @@ defs setVMRootForFlush_def:
     tcb \<leftarrow> getCurThread;
     threadRootSlot \<leftarrow> getThreadVSpaceRoot tcb;
     threadRoot \<leftarrow> getSlotCap threadRootSlot;
-    (let v44 = threadRoot in
-        if isArchObjectCap v44 \<and> isPageDirectoryCap (capCap v44) \<and> capPDMappedASID (capCap v44) \<noteq> None \<and> capPDBasePtr (capCap v44) = pd
+    (let v37 = threadRoot in
+        if isArchObjectCap v37 \<and> isPageDirectoryCap (capCap v37) \<and> capPDMappedASID (capCap v37) \<noteq> None \<and> capPDBasePtr (capCap v37) = pd
         then let cur_pd = pd in  return False
         else  (do
             armv_contextSwitch pd asid;
@@ -801,7 +505,7 @@ defs isValidVTableRoot_def:
 
 defs checkValidIPCBuffer_def:
 "checkValidIPCBuffer vptr x1\<equiv> (case x1 of
-    (ArchObjectCap (PageCap _ _ _ _)) \<Rightarrow>    (doE
+    (ArchObjectCap (PageCap False _ _ _ _)) \<Rightarrow>    (doE
     whenE (vptr && mask msgAlignBits \<noteq> 0) $ throw AlignmentError;
     returnOk ()
     odE)
@@ -820,7 +524,7 @@ defs maskVMRights_def:
 defs attribsFromWord_def:
 "attribsFromWord w \<equiv> VMAttributes_ \<lparr>
     armPageCacheable= w !! 0,
-    armParityEnabled= w !! 1,
+    armParityEnabled= False,
     armExecuteNever= w !! 2 \<rparr>"
 
 defs storeHWASID_def:
@@ -1004,24 +708,21 @@ defs resolveVAddr_def:
     pdSlot \<leftarrow> return ( lookupPDSlot pd vaddr);
     pde \<leftarrow> getObject pdSlot;
     (case pde of
-          SectionPDE frame v54 v55 v56 v57 v58 v59 \<Rightarrow>   return $ Just (ARMSection, frame)
-        | SuperSectionPDE frame v60 v61 v62 v63 v64 \<Rightarrow>   return $ Just (ARMSuperSection, frame)
-        | PageTablePDE table v65 v66 \<Rightarrow>   (do
+          SectionPDE frame v45 v46 v47 \<Rightarrow>   return $ Just (ARMSection, frame)
+        | SuperSectionPDE frame v48 v49 v50 \<Rightarrow>   return $ Just (ARMSuperSection, frame)
+        | PageTablePDE table \<Rightarrow>   (do
             pt \<leftarrow> return ( ptrFromPAddr table);
             pteSlot \<leftarrow> lookupPTSlotFromPT pt vaddr;
             pte \<leftarrow> getObject pteSlot;
             (case pte of
-                  LargePagePTE frame v46 v47 v48 v49 \<Rightarrow>   return $ Just (ARMLargePage, frame)
-                | SmallPagePTE frame v50 v51 v52 v53 \<Rightarrow>   return $ Just (ARMSmallPage, frame)
+                  LargePagePTE frame v39 v40 v41 \<Rightarrow>   return $ Just (ARMLargePage, frame)
+                | SmallPagePTE frame v42 v43 v44 \<Rightarrow>   return $ Just (ARMSmallPage, frame)
                 | _ \<Rightarrow>   return Nothing
                 )
         od)
         | _ \<Rightarrow>   return Nothing
         )
 od)"
-
-defs isIOSpaceFrameCap_def:
-"isIOSpaceFrameCap arg1 \<equiv> False"
 
 defs decodeARMMMUInvocation_def:
 "decodeARMMMUInvocation label args x2 cte x4 extraCaps\<equiv> (let cap = x4 in
@@ -1079,15 +780,14 @@ defs decodeARMMMUInvocation_def:
                 throw $ InvalidArgument 0;
             pdCheck \<leftarrow> lookupErrorOnFailure False $ findPDForASID asid;
             whenE (pdCheck \<noteq> pd) $ throw $ InvalidCapability 1;
-            pdIndex \<leftarrow> returnOk ( vaddr `~shiftR~` 20);
-            vaddr' \<leftarrow> returnOk ( pdIndex `~shiftL~` 20);
-            pdSlot \<leftarrow> returnOk ( pd + (PPtr $ pdIndex `~shiftL~` 2));
+            pdIndex \<leftarrow> returnOk ( vaddr `~shiftR~` (pageBits + ptBits - pteBits));
+            vaddr' \<leftarrow> returnOk ( pdIndex `~shiftL~` (pageBits + ptBits - pteBits));
+            pdSlot \<leftarrow> returnOk ( pd + (PPtr $ pdIndex `~shiftL~` pdeBits));
             oldpde \<leftarrow> withoutFailure $ getObject pdSlot;
             unlessE (oldpde = InvalidPDE) $ throw DeleteFirst;
             pde \<leftarrow> returnOk ( PageTablePDE_ \<lparr>
-                    pdeTable= addrFromPPtr $ capPTBasePtr cap,
-                    pdeParity= armParityEnabled $ attribsFromWord attr,
-                    pdeDomain= 0 \<rparr>);
+                    pdeTable= addrFromPPtr $ capPTBasePtr cap
+                    \<rparr>);
             returnOk $ InvokePageTable $ PageTableMap_ \<lparr>
                 ptMapCap= ArchObjectCap $
                     cap \<lparr> capPTMappedAddress:= Just (asid, VPtr vaddr') \<rparr>,
@@ -1138,7 +838,6 @@ defs decodeARMMMUInvocation_def:
           odE)
         | (ArchInvocationLabel ARMPageMap, _, _) \<Rightarrow>   throw TruncatedMessage
         | (ArchInvocationLabel ARMPageRemap, rightsMask#attr#_, (pdCap, _)#_) \<Rightarrow>   (doE
-            whenE (isIOSpaceFrameCap cap) $ throw IllegalOperation;
             (pd,asid) \<leftarrow> (case pdCap of
                   ArchObjectCap (PageDirectoryCap pd (Some asid)) \<Rightarrow>   returnOk (pd,asid)
                 | _ \<Rightarrow>   throw $ InvalidCapability 1
@@ -1160,9 +859,11 @@ defs decodeARMMMUInvocation_def:
                 pageRemapEntries= entries \<rparr>
         odE)
         | (ArchInvocationLabel ARMPageRemap, _, _) \<Rightarrow>   throw TruncatedMessage
-        | (ArchInvocationLabel ARMPageUnmap, _, _) \<Rightarrow>   returnOk $ InvokePage $ PageUnmap_ \<lparr>
-                pageUnmapCap= cap,
-                pageUnmapCapSlot= cte \<rparr>
+        | (ArchInvocationLabel ARMPageUnmap, _, _) \<Rightarrow>  
+                returnOk $
+                              InvokePage $ PageUnmap_ \<lparr>
+                                             pageUnmapCap= cap,
+                                             pageUnmapCapSlot= cte \<rparr>
         | (ArchInvocationLabel ARMPageClean_Data, _, _) \<Rightarrow>   decodeARMPageFlush label args cap
         | (ArchInvocationLabel ARMPageInvalidate_Data, _, _) \<Rightarrow>   decodeARMPageFlush label args cap
         | (ArchInvocationLabel ARMPageCleanInvalidate_Data, _, _) \<Rightarrow>   decodeARMPageFlush label args cap
@@ -1176,12 +877,11 @@ defs decodeARMMMUInvocation_def:
     (case (invocationType label, args, extraCaps) of
           (ArchInvocationLabel ARMASIDControlMakePool, index#depth#_, (untyped,parentSlot)#(croot,_)#_) \<Rightarrow>   (doE
             asidTable \<leftarrow> withoutFailure $ gets (armKSASIDTable \<circ> ksArchState);
-            free \<leftarrow> returnOk ( filter (\<lambda> (x,y). x \<le> (1 `~shiftL~` asidHighBits) - 1 \<and> isNothing y) $ assocs asidTable);
+            free \<leftarrow> returnOk ( filter (\<lambda> (x,y). x \<le> (bit asidHighBits) - 1 \<and> isNothing y) $ assocs asidTable);
             whenE (null free) $ throw DeleteFirst;
             base \<leftarrow> returnOk ( (fst $ head free) `~shiftL~` asidLowBits);
             pool \<leftarrow> returnOk ( makeObject ::asidpool);
-            frame \<leftarrow> (let v67 = untyped in
-                if isUntypedCap v67 \<and> capBlockSize v67 = objBits pool
+            frame \<leftarrow> (if isUntypedCap untyped \<and> (\<not> capIsDevice untyped) \<and> (capBlockSize untyped = objBits pool)
                 then  (doE
                     ensureNoChildren parentSlot;
                     returnOk $ capPtr untyped
@@ -1213,7 +913,7 @@ defs decodeARMMMUInvocation_def:
  p \<leftarrow> liftME the $  returnOk ( poolPtr);
                     whenE (p \<noteq> capASIDPool cap) $ throw $ InvalidCapability 0;
  pool \<leftarrow> liftME (inv ASIDPool) $  withoutFailure $ getObject $ p;
-                    free \<leftarrow> returnOk ( filter (\<lambda> (x,y). x \<le>  (1 `~shiftL~` asidLowBits) - 1
+                    free \<leftarrow> returnOk ( filter (\<lambda> (x,y). x \<le>  (bit asidLowBits) - 1
                                                  \<and> x + base \<noteq> 0 \<and> isNothing y) $ assocs pool);
                     whenE (null free) $ throw DeleteFirst;
                     asid \<leftarrow> returnOk ( fst $ head free);
@@ -1227,22 +927,25 @@ defs decodeARMMMUInvocation_def:
         | (ArchInvocationLabel ARMASIDPoolAssign, _) \<Rightarrow>   throw TruncatedMessage
         | _ \<Rightarrow>   throw IllegalOperation
         )
+  else if isVCPUCap cap
+  then   haskell_fail []
   else undefined
   )"
 
 defs decodeARMPageFlush_def:
 "decodeARMPageFlush label args cap\<equiv> (case (args, capVPMappedAddress cap) of
       (start#end#_, Some (asid, vaddr)) \<Rightarrow>   (doE
+        vaddr' \<leftarrow> returnOk ( capVPBasePtr cap);
         pd \<leftarrow> lookupErrorOnFailure False $ findPDForASID asid;
         whenE (end \<le> start) $
             throw $ InvalidArgument 1;
-        pageSize \<leftarrow> returnOk ( 1 `~shiftL~` pageBitsForSize (capVPSize cap));
+        pageSize \<leftarrow> returnOk ( bit (pageBitsForSize (capVPSize cap)));
         pageBase \<leftarrow> returnOk ( addrFromPPtr $ capVPBasePtr cap);
         whenE (start \<ge> pageSize \<or> end > pageSize) $
             throw $ InvalidArgument 0;
         pstart \<leftarrow> returnOk ( pageBase + toPAddr start);
-        start' \<leftarrow> returnOk ( start + fromVPtr vaddr);
-        end' \<leftarrow> returnOk ( end + fromVPtr vaddr);
+        start' \<leftarrow> returnOk ( start + fromPPtr vaddr');
+        end' \<leftarrow> returnOk ( end + fromPPtr vaddr');
         returnOk $ InvokePage $ PageFlush_ \<lparr>
               pageFlushType= labelToFlushType label,
               pageFlushStart= VPtr $ start',
@@ -1268,6 +971,7 @@ defs performARMMMUInvocation_def:
         | InvokePage oper \<Rightarrow>   performPageInvocation oper
         | InvokeASIDControl oper \<Rightarrow>   performASIDControlInvocation oper
         | InvokeASIDPool oper \<Rightarrow>   performASIDPoolInvocation oper
+        | InvokeVCPU v54 \<Rightarrow>   haskell_fail []
         );
     return $ []
 od)"
@@ -1298,12 +1002,11 @@ defs performPageTableInvocation_def:
           Some (asid, vaddr) \<Rightarrow>   (do
             unmapPageTable asid vaddr (capPTBasePtr cap);
             ptr \<leftarrow> return ( capPTBasePtr cap);
-            pteBits \<leftarrow> return ( objBits InvalidPTE);
             slots \<leftarrow> return ( [ptr, ptr + bit pteBits  .e.  ptr + bit ptBits - 1]);
             mapM_x (flip storePTE InvalidPTE) slots;
             doMachineOp $
                 cleanCacheRange_PoU (VPtr $ fromPPtr $ ptr)
-                                    (VPtr $ fromPPtr $ (ptr + (1 `~shiftL~` ptBits) - 1))
+                                    (VPtr $ fromPPtr $ (ptr + bit ptBits - 1))
                                     (addrFromPPtr ptr)
           od)
         | None \<Rightarrow>   return ()
@@ -1336,7 +1039,7 @@ defs performPageInvocation_def:
             mapM (flip storePTE pte) slots;
             doMachineOp $
                 cleanCacheRange_PoU (VPtr $ fromPPtr $ head slots)
-                                    (VPtr $ (fromPPtr (last slots)) + (bit (objBits (undefined::pte)) - 1))
+                                    (VPtr $ (fromPPtr (last slots)) + (bit pteBits - 1))
                                     (addrFromPPtr (head slots));
             when tlbFlush $ invalidateTLBByASID asid
           od)
@@ -1345,7 +1048,7 @@ defs performPageInvocation_def:
             mapM (flip storePDE pde) slots;
             doMachineOp $
                 cleanCacheRange_PoU (VPtr $ fromPPtr $ head slots)
-                                    (VPtr $ (fromPPtr (last slots)) + (bit (objBits (undefined::pde)) - 1))
+                                    (VPtr $ (fromPPtr (last slots)) + (bit pdeBits - 1))
                                     (addrFromPPtr (head slots));
             when tlbFlush $ invalidateTLBByASID asid
         od)
@@ -1356,7 +1059,7 @@ defs performPageInvocation_def:
     mapM (flip storePTE pte) slots;
     doMachineOp $
         cleanCacheRange_PoU (VPtr $ fromPPtr $ head slots)
-                            (VPtr $ (fromPPtr (last slots)) + (bit (objBits (undefined::pte)) - 1))
+                            (VPtr $ (fromPPtr (last slots)) + (bit pteBits - 1))
                             (addrFromPPtr (head slots));
     when tlbFlush $ invalidateTLBByASID asid
   od)
@@ -1365,7 +1068,7 @@ defs performPageInvocation_def:
     mapM (flip storePDE pde) slots;
     doMachineOp $
         cleanCacheRange_PoU (VPtr $ fromPPtr $ head slots)
-                            (VPtr $ (fromPPtr (last slots)) + (bit (objBits (undefined::pde)) - 1))
+                            (VPtr $ (fromPPtr (last slots)) + (bit pdeBits - 1))
                             (addrFromPPtr (head slots));
     when tlbFlush $ invalidateTLBByASID asid
   od)
@@ -1406,7 +1109,7 @@ defs performASIDControlInvocation_def:
     (MakePool frame slot parent base) \<Rightarrow>    (do
     deleteObjects frame pageBits;
     pcap \<leftarrow> getSlotCap parent;
-    updateCap parent (pcap \<lparr>capFreeIndex := maxFreeIndex (capBlockSize pcap) \<rparr>);
+    updateFreeIndex parent (maxFreeIndex (capBlockSize pcap));
     placeNewObject frame (makeObject ::asidpool) 0;
     poolPtr \<leftarrow> return ( PPtr $ fromPPtr frame);
     cteInsert (ArchObjectCap $ ASIDPoolCap poolPtr base) parent slot;
@@ -1434,13 +1137,27 @@ defs performASIDPoolInvocation_def:
 defs storePDE_def:
 "storePDE slot pde\<equiv> (do
     setObject slot pde;
-    doMachineOp $ storeWordVM (PPtr $ fromPPtr slot) $ wordFromPDE pde
+    v60 \<leftarrow>   return ( wordsFromPDE pde);
+    w0 \<leftarrow> headM v60;
+     v62 \<leftarrow>   tailM v60;
+     w1 \<leftarrow> headM v62;
+     v61 \<leftarrow> tailM v62;
+    haskell_assert (v61 = []) [];
+    doMachineOp $ storeWordVM (PPtr $ fromPPtr slot) w0;
+    doMachineOp $ storeWordVM (PPtr $ fromPPtr slot + fromIntegral wordSize) w1
 od)"
 
 defs storePTE_def:
 "storePTE slot pte\<equiv> (do
     setObject slot pte;
-    doMachineOp $ storeWordVM (PPtr $ fromPPtr slot) $ wordFromPTE pte
+    v64 \<leftarrow>   return ( wordsFromPTE pte);
+    w0 \<leftarrow> headM v64;
+     v66 \<leftarrow>   tailM v64;
+     w1 \<leftarrow> headM v66;
+     v65 \<leftarrow> tailM v66;
+    haskell_assert (v65 = []) [];
+    doMachineOp $ storeWordVM (PPtr $ fromPPtr slot) w0;
+    doMachineOp $ storeWordVM (PPtr $ fromPPtr slot + fromIntegral wordSize) w1
 od)"
 
 

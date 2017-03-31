@@ -40,8 +40,6 @@ defs idleThreadCode_def:
 defs mapKernelWindow_def:
 "mapKernelWindow\<equiv> (do
     baseoffset \<leftarrow> return ( kernelBase `~shiftR~` pageBitsForSize (ARMSection));
-    pdeBits \<leftarrow> return ( objBits (undefined ::pde));
-    pteBits \<leftarrow> return ( objBits (undefined ::pte));
     ptSize \<leftarrow> return ( ptBits - pteBits);
     pdSize \<leftarrow> return ( pdBits - pdeBits);
     globalPD \<leftarrow> gets $ armKSGlobalPD \<circ> ksArchState;
@@ -76,8 +74,6 @@ od)"
 
 defs createSectionPDE_def:
 "createSectionPDE offset\<equiv> (do
-    pdeBits \<leftarrow> return ( objBits (undefined ::pde));
-    pteBits \<leftarrow> return ( objBits (undefined ::pte));
     globalPD \<leftarrow> gets $ armKSGlobalPD \<circ> ksArchState;
     virt \<leftarrow> return ( fromVPtr $ offset `~shiftL~` pageBitsForSize (ARMSection));
     phys \<leftarrow> return ( addrFromPPtr $ PPtr virt);
@@ -375,7 +371,6 @@ odE)"
 defs copyGlobalMappings_def:
 "copyGlobalMappings newPD\<equiv> (do
     globalPD \<leftarrow> gets (armKSGlobalPD \<circ> ksArchState);
-    pdeBits \<leftarrow> return ( objBits (undefined ::pde));
     pdSize \<leftarrow> return ( 1 `~shiftL~` (pdBits - pdeBits));
     forM_x [fromVPtr kernelBase `~shiftR~` 20  .e.  pdSize - 1] (\<lambda> index. (do
         offset \<leftarrow> return ( PPtr index `~shiftL~` pdeBits);
@@ -383,6 +378,20 @@ defs copyGlobalMappings_def:
         storePDE (newPD + offset) pde
     od))
 od)"
+
+defs largePagePTEOffsets_def:
+"largePagePTEOffsets \<equiv>
+    let
+     pts = bit pteBits
+    in
+                             [0, PPtr pts  .e.  PPtr (15 `~shiftL~` pteBits)]"
+
+defs superSectionPDEOffsets_def:
+"superSectionPDEOffsets \<equiv>
+    let
+     pds = bit pdeBits
+    in
+                                [0, PPtr pds  .e.  PPtr (15 `~shiftL~` pdeBits)]"
 
 defs createMappingEntries_def:
 "createMappingEntries base vptr x2 vmRights attrib pd\<equiv> (case x2 of
@@ -402,7 +411,7 @@ defs createMappingEntries_def:
         pteCacheable= armPageCacheable attrib,
         pteGlobal= False,
         pteExecuteNever= armExecuteNever attrib,
-        pteRights= vmRights \<rparr>, [p, p + 4  .e.  p + 60])
+        pteRights= vmRights \<rparr>, map (\<lambda> x. x + p) largePagePTEOffsets)
   odE)
   | ARMSection \<Rightarrow>    (doE
     p \<leftarrow> returnOk ( lookupPDSlot pd vptr);
@@ -423,7 +432,7 @@ defs createMappingEntries_def:
         pdeCacheable= armPageCacheable attrib,
         pdeGlobal= False,
         pdeExecuteNever= armExecuteNever attrib,
-        pdeRights= vmRights \<rparr>, [p, p + 4  .e.  p + 60])
+        pdeRights= vmRights \<rparr>, map (\<lambda> x. x + p) superSectionPDEOffsets)
   odE)
   )"
 
@@ -551,16 +560,16 @@ odE)"
 
 defs lookupPTSlotFromPT_def:
 "lookupPTSlotFromPT pt vptr\<equiv> (do
-    ptIndex \<leftarrow> return ( fromVPtr $ vptr `~shiftR~` 12 && 0xff);
-    ptSlot \<leftarrow> return ( pt + (PPtr $ ptIndex `~shiftL~` 2));
+    ptIndex \<leftarrow> return ( fromVPtr $ vptr `~shiftR~` pageBits && mask (ptBits - pteBits));
+    ptSlot \<leftarrow> return ( pt + (PPtr $ ptIndex `~shiftL~` pteBits));
     checkPTAt pt;
     return ptSlot
 od)"
 
 defs lookupPDSlot_def:
 "lookupPDSlot pd vptr \<equiv>
-    let pdIndex = fromVPtr $ vptr `~shiftR~` 20
-    in pd + (PPtr $ pdIndex `~shiftL~` 2)"
+    let pdIndex = fromVPtr $ vptr `~shiftR~` (pageBits + ptBits - pteBits)
+    in pd + (PPtr $ pdIndex `~shiftL~` pdeBits)"
 
 defs handleVMFault_def:
 "handleVMFault thread x1\<equiv> (case x1 of
@@ -661,11 +670,11 @@ defs unmapPage_def:
             p \<leftarrow> lookupPTSlot pd vptr;
             checkMappingPPtr ptr magnitude (Inl p);
             withoutFailure $ (do
-                slots \<leftarrow> return ( map (\<lambda> x. x + p) [0, 4  .e.  60]);
+                slots \<leftarrow> return ( map (\<lambda> x. x + p) largePagePTEOffsets);
                 mapM (flip storePTE InvalidPTE) slots;
                 doMachineOp $
                     cleanCacheRange_PoU (VPtr $ fromPPtr $ (head slots))
-                                        (VPtr $ (fromPPtr (last slots)) + (bit (objBits (undefined ::pte)) - 1 ))
+                                        (VPtr $ (fromPPtr (last slots)) + (bit pteBits - 1 ))
                                         (addrFromPPtr (head slots))
             od)
         odE)
@@ -681,11 +690,11 @@ defs unmapPage_def:
             p \<leftarrow> returnOk ( lookupPDSlot pd vptr);
             checkMappingPPtr ptr magnitude (Inr p);
             withoutFailure $ (do
-                slots \<leftarrow> return ( map (\<lambda> x. x + p) [0, 4  .e.  60]);
+                slots \<leftarrow> return ( map (\<lambda> x. x + p) superSectionPDEOffsets);
                 mapM (flip storePDE InvalidPDE) slots;
                 doMachineOp $
                     cleanCacheRange_PoU (VPtr $ fromPPtr $ (head slots))
-                                        (VPtr $ (fromPPtr  (last slots)) + (bit (objBits (undefined ::pde)) - 1))
+                                        (VPtr $ (fromPPtr  (last slots)) + (bit pdeBits - 1))
                                         (addrFromPPtr (head slots))
             od)
         odE)
@@ -740,7 +749,9 @@ defs setVMRoot_def:
                 whenE (pd \<noteq> pd') $ (
                     throw InvalidRoot
                 );
-                withoutFailure $ armv_contextSwitch pd asid
+                withoutFailure $ (
+                    armv_contextSwitch pd asid
+                )
               odE)
             | _ \<Rightarrow>   throw InvalidRoot)
             )
@@ -1053,15 +1064,16 @@ defs decodeARMMMUInvocation_def:
                 throw $ InvalidArgument 0;
             pdCheck \<leftarrow> lookupErrorOnFailure False $ findPDForASID asid;
             whenE (pdCheck \<noteq> pd) $ throw $ InvalidCapability 1;
-            pdIndex \<leftarrow> returnOk ( vaddr `~shiftR~` 20);
-            vaddr' \<leftarrow> returnOk ( pdIndex `~shiftL~` 20);
-            pdSlot \<leftarrow> returnOk ( pd + (PPtr $ pdIndex `~shiftL~` 2));
+            pdIndex \<leftarrow> returnOk ( vaddr `~shiftR~` (pageBits + ptBits - pteBits));
+            vaddr' \<leftarrow> returnOk ( pdIndex `~shiftL~` (pageBits + ptBits - pteBits));
+            pdSlot \<leftarrow> returnOk ( pd + (PPtr $ pdIndex `~shiftL~` pdeBits));
             oldpde \<leftarrow> withoutFailure $ getObject pdSlot;
             unlessE (oldpde = InvalidPDE) $ throw DeleteFirst;
             pde \<leftarrow> returnOk ( PageTablePDE_ \<lparr>
-                    pdeTable= addrFromPPtr $ capPTBasePtr cap,
-                    pdeParity= armParityEnabled $ attribsFromWord attr,
-                    pdeDomain= 0 \<rparr>);
+                    pdeTable= addrFromPPtr $ capPTBasePtr cap
+                    ,pdeParity= armParityEnabled $ attribsFromWord attr
+                    ,pdeDomain= 0
+                    \<rparr>);
             returnOk $ InvokePageTable $ PageTableMap_ \<lparr>
                 ptMapCap= ArchObjectCap $
                     cap \<lparr> capPTMappedAddress:= Just (asid, VPtr vaddr') \<rparr>,
@@ -1133,9 +1145,11 @@ defs decodeARMMMUInvocation_def:
                 pageRemapEntries= entries \<rparr>
         odE)
         | (ArchInvocationLabel ARMPageRemap, _, _) \<Rightarrow>   throw TruncatedMessage
-        | (ArchInvocationLabel ARMPageUnmap, _, _) \<Rightarrow>   returnOk $ InvokePage $ PageUnmap_ \<lparr>
-                pageUnmapCap= cap,
-                pageUnmapCapSlot= cte \<rparr>
+        | (ArchInvocationLabel ARMPageUnmap, _, _) \<Rightarrow>  
+                returnOk $
+                              InvokePage $ PageUnmap_ \<lparr>
+                                             pageUnmapCap= cap,
+                                             pageUnmapCapSlot= cte \<rparr>
         | (ArchInvocationLabel ARMPageClean_Data, _, _) \<Rightarrow>   decodeARMPageFlush label args cap
         | (ArchInvocationLabel ARMPageInvalidate_Data, _, _) \<Rightarrow>   decodeARMPageFlush label args cap
         | (ArchInvocationLabel ARMPageCleanInvalidate_Data, _, _) \<Rightarrow>   decodeARMPageFlush label args cap
@@ -1149,7 +1163,7 @@ defs decodeARMMMUInvocation_def:
     (case (invocationType label, args, extraCaps) of
           (ArchInvocationLabel ARMASIDControlMakePool, index#depth#_, (untyped,parentSlot)#(croot,_)#_) \<Rightarrow>   (doE
             asidTable \<leftarrow> withoutFailure $ gets (armKSASIDTable \<circ> ksArchState);
-            free \<leftarrow> returnOk ( filter (\<lambda> (x,y). x \<le> (1 `~shiftL~` asidHighBits) - 1 \<and> isNothing y) $ assocs asidTable);
+            free \<leftarrow> returnOk ( filter (\<lambda> (x,y). x \<le> (bit asidHighBits) - 1 \<and> isNothing y) $ assocs asidTable);
             whenE (null free) $ throw DeleteFirst;
             base \<leftarrow> returnOk ( (fst $ head free) `~shiftL~` asidLowBits);
             pool \<leftarrow> returnOk ( makeObject ::asidpool);
@@ -1186,7 +1200,7 @@ defs decodeARMMMUInvocation_def:
  p \<leftarrow> liftME the $  returnOk ( poolPtr);
                     whenE (p \<noteq> capASIDPool cap) $ throw $ InvalidCapability 0;
  pool \<leftarrow> liftME (inv ASIDPool) $  withoutFailure $ getObject $ p;
-                    free \<leftarrow> returnOk ( filter (\<lambda> (x,y). x \<le>  (1 `~shiftL~` asidLowBits) - 1
+                    free \<leftarrow> returnOk ( filter (\<lambda> (x,y). x \<le>  (bit asidLowBits) - 1
                                                  \<and> x + base \<noteq> 0 \<and> isNothing y) $ assocs pool);
                     whenE (null free) $ throw DeleteFirst;
                     asid \<leftarrow> returnOk ( fst $ head free);
@@ -1209,7 +1223,7 @@ defs decodeARMPageFlush_def:
         pd \<leftarrow> lookupErrorOnFailure False $ findPDForASID asid;
         whenE (end \<le> start) $
             throw $ InvalidArgument 1;
-        pageSize \<leftarrow> returnOk ( 1 `~shiftL~` pageBitsForSize (capVPSize cap));
+        pageSize \<leftarrow> returnOk ( bit (pageBitsForSize (capVPSize cap)));
         pageBase \<leftarrow> returnOk ( addrFromPPtr $ capVPBasePtr cap);
         whenE (start \<ge> pageSize \<or> end > pageSize) $
             throw $ InvalidArgument 0;
@@ -1271,12 +1285,11 @@ defs performPageTableInvocation_def:
           Some (asid, vaddr) \<Rightarrow>   (do
             unmapPageTable asid vaddr (capPTBasePtr cap);
             ptr \<leftarrow> return ( capPTBasePtr cap);
-            pteBits \<leftarrow> return ( objBits InvalidPTE);
             slots \<leftarrow> return ( [ptr, ptr + bit pteBits  .e.  ptr + bit ptBits - 1]);
             mapM_x (flip storePTE InvalidPTE) slots;
             doMachineOp $
                 cleanCacheRange_PoU (VPtr $ fromPPtr $ ptr)
-                                    (VPtr $ fromPPtr $ (ptr + (1 `~shiftL~` ptBits) - 1))
+                                    (VPtr $ fromPPtr $ (ptr + bit ptBits - 1))
                                     (addrFromPPtr ptr)
           od)
         | None \<Rightarrow>   return ()
@@ -1309,7 +1322,7 @@ defs performPageInvocation_def:
             mapM (flip storePTE pte) slots;
             doMachineOp $
                 cleanCacheRange_PoU (VPtr $ fromPPtr $ head slots)
-                                    (VPtr $ (fromPPtr (last slots)) + (bit (objBits (undefined::pte)) - 1))
+                                    (VPtr $ (fromPPtr (last slots)) + (bit pteBits - 1))
                                     (addrFromPPtr (head slots));
             when tlbFlush $ invalidateTLBByASID asid
           od)
@@ -1318,7 +1331,7 @@ defs performPageInvocation_def:
             mapM (flip storePDE pde) slots;
             doMachineOp $
                 cleanCacheRange_PoU (VPtr $ fromPPtr $ head slots)
-                                    (VPtr $ (fromPPtr (last slots)) + (bit (objBits (undefined::pde)) - 1))
+                                    (VPtr $ (fromPPtr (last slots)) + (bit pdeBits - 1))
                                     (addrFromPPtr (head slots));
             when tlbFlush $ invalidateTLBByASID asid
         od)
@@ -1329,7 +1342,7 @@ defs performPageInvocation_def:
     mapM (flip storePTE pte) slots;
     doMachineOp $
         cleanCacheRange_PoU (VPtr $ fromPPtr $ head slots)
-                            (VPtr $ (fromPPtr (last slots)) + (bit (objBits (undefined::pte)) - 1))
+                            (VPtr $ (fromPPtr (last slots)) + (bit pteBits - 1))
                             (addrFromPPtr (head slots));
     when tlbFlush $ invalidateTLBByASID asid
   od)
@@ -1338,7 +1351,7 @@ defs performPageInvocation_def:
     mapM (flip storePDE pde) slots;
     doMachineOp $
         cleanCacheRange_PoU (VPtr $ fromPPtr $ head slots)
-                            (VPtr $ (fromPPtr (last slots)) + (bit (objBits (undefined::pde)) - 1))
+                            (VPtr $ (fromPPtr (last slots)) + (bit pdeBits - 1))
                             (addrFromPPtr (head slots));
     when tlbFlush $ invalidateTLBByASID asid
   od)

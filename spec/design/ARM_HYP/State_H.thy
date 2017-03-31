@@ -1,3 +1,5 @@
+(* THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT EDIT. *)
+(* instead, see the skeleton file State_H.thy *)
 (*
  * Copyright 2014, General Dynamics C4 Systems
  *
@@ -20,7 +22,7 @@ imports
   RegisterSet_H
   "../../machine/ARM_HYP/MachineOps"
 begin
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 definition
   Word :: "machine_word \<Rightarrow> machine_word"
@@ -28,7 +30,7 @@ where
   Word_def[simp]:
  "Word \<equiv> id"
 
-type_synonym register = "ARM.register"
+type_synonym register = "ARM_HYP.register"
 
 definition
   Register :: "register \<Rightarrow> register"
@@ -61,49 +63,47 @@ where
 definition
 msgInfoRegister :: "register"
 where
-"msgInfoRegister \<equiv> Register ARM.msgInfoRegister"
+"msgInfoRegister \<equiv> Register ARM_HYP.msgInfoRegister"
 
 definition
 msgRegisters :: "register list"
 where
-"msgRegisters \<equiv> map Register ARM.msgRegisters"
+"msgRegisters \<equiv> map Register ARM_HYP.msgRegisters"
 
 definition
 capRegister :: "register"
 where
-"capRegister \<equiv> Register ARM.capRegister"
+"capRegister \<equiv> Register ARM_HYP.capRegister"
 
 definition
 badgeRegister :: "register"
 where
-"badgeRegister \<equiv> Register ARM.badgeRegister"
+"badgeRegister \<equiv> Register ARM_HYP.badgeRegister"
 
 definition
 frameRegisters :: "register list"
 where
-"frameRegisters \<equiv> map Register ARM.frameRegisters"
+"frameRegisters \<equiv> map Register ARM_HYP.frameRegisters"
 
 definition
 gpRegisters :: "register list"
 where
-"gpRegisters \<equiv> map Register ARM.gpRegisters"
+"gpRegisters \<equiv> map Register ARM_HYP.gpRegisters"
 
 definition
 exceptionMessage :: "register list"
 where
-"exceptionMessage \<equiv> map Register ARM.exceptionMessage"
+"exceptionMessage \<equiv> map Register ARM_HYP.exceptionMessage"
 
 definition
 syscallMessage :: "register list"
 where
-"syscallMessage \<equiv> map Register ARM.syscallMessage"
+"syscallMessage \<equiv> map Register ARM_HYP.syscallMessage"
 
 definition
-sanitiseRegister :: "register \<Rightarrow> machine_word \<Rightarrow> machine_word"
+tpidrurwRegister :: "register"
 where
-"sanitiseRegister x0 x1\<equiv> (case (x0, x1) of
-    (((* Register *) r), ((* Word *) w)) \<Rightarrow>    Word $ ARM.sanitiseRegister r w
-  )"
+"tpidrurwRegister \<equiv> Register ARM_HYP.tpidrurwRegister"
 
 
 definition

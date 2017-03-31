@@ -1,3 +1,5 @@
+(* THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT EDIT. *)
+(* instead, see the skeleton file ArchInterruptDecls_H.thy *)
 (*
  * Copyright 2014, General Dynamics C4 Systems
  *
@@ -12,7 +14,7 @@ theory ArchInterruptDecls_H
 imports "../RetypeDecls_H" "../CNode_H" 
 begin
 
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 consts'
 decodeIRQControlInvocation :: "machine_word \<Rightarrow> machine_word list \<Rightarrow> machine_word \<Rightarrow> capability list \<Rightarrow> ( syscall_error , irqcontrol_invocation ) kernel_f"
@@ -22,6 +24,12 @@ performIRQControl :: "irqcontrol_invocation \<Rightarrow> unit kernel_p"
 
 consts'
 checkIRQ :: "machine_word \<Rightarrow> ( syscall_error , unit ) kernel_f"
+
+consts'
+handleReservedIRQ :: "irq \<Rightarrow> unit kernel"
+
+consts'
+initInterruptController :: "unit kernel"
 
 
 end

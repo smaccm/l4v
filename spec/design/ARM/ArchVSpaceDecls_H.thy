@@ -84,6 +84,12 @@ consts'
 copyGlobalMappings :: "machine_word \<Rightarrow> unit kernel"
 
 consts'
+largePagePTEOffsets :: "machine_word list"
+
+consts'
+superSectionPDEOffsets :: "machine_word list"
+
+consts'
 createMappingEntries :: "paddr \<Rightarrow> vptr \<Rightarrow> vmpage_size \<Rightarrow> vmrights \<Rightarrow> vmattributes \<Rightarrow> machine_word \<Rightarrow> ( syscall_error , ((pte * machine_word list) + (pde * machine_word list)) ) kernel_f"
 
 consts'

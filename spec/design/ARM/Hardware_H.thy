@@ -358,14 +358,26 @@ where
 "clearExMonitor\<equiv> return ()"
 
 definition
-pdBits :: "nat"
-where
-"pdBits \<equiv> pageBits + 2"
+"pteBits\<equiv> (2 ::nat)"
 
 definition
-ptBits :: "nat"
+"pdeBits\<equiv> (2 ::nat)"
+
+definition
+"pdBits\<equiv> (12 ::nat) + pdeBits"
+
+definition
+"ptBits\<equiv> (8 ::nat) + pteBits"
+
+definition
+pteSize :: "nat"
 where
-"ptBits \<equiv> pageBits - 2"
+"pteSize \<equiv> bit pteBits"
+
+definition
+pdeSize :: "nat"
+where
+"pdeSize \<equiv> bit pdeBits"
 
 definition
 physBase :: "paddr"

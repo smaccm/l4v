@@ -1,3 +1,5 @@
+(* THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT EDIT. *)
+(* instead, see the skeleton file ArchInvocationLabels_H.thy *)
 (*
  * Copyright 2014, General Dynamics C4 Systems
  *
@@ -15,7 +17,7 @@ imports
     "../../../lib/Word_Lib/Enumeration"
     "../../machine/Setup_Locale"
 begin
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 text {*
   An enumeration of arch-specific system call labels.
@@ -26,6 +28,10 @@ datatype arch_invocation_label =
   | ARMPDInvalidate_Data
   | ARMPDCleanInvalidate_Data
   | ARMPDUnify_Instruction
+  | ARMVCPUSetTCB
+  | ARMVCPUInjectIRQ
+  | ARMVCPUReadReg
+  | ARMVCPUWriteReg
   | ARMPageTableMap
   | ARMPageTableUnmap
   | ARMPageMap
@@ -46,10 +52,10 @@ context begin interpretation Arch .
 requalify_types arch_invocation_label
 end
 
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 end
-qualify ARM_H (in Arch) 
+qualify ARM_HYP_H (in Arch) 
 (* arch_invocation_label instance proofs *)
 (*<*)
 instantiation arch_invocation_label :: enum begin
@@ -61,6 +67,10 @@ definition
       ARMPDInvalidate_Data,
       ARMPDCleanInvalidate_Data,
       ARMPDUnify_Instruction,
+      ARMVCPUSetTCB,
+      ARMVCPUInjectIRQ,
+      ARMVCPUReadReg,
+      ARMVCPUWriteReg,
       ARMPageTableMap,
       ARMPageTableUnmap,
       ARMPageMap,
@@ -107,7 +117,7 @@ end
 
 (*>*)
 end_qualify
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 
 end

@@ -1,3 +1,5 @@
+(* THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT EDIT. *)
+(* instead, see the skeleton file ArchStructures_H.thy *)
 (*
  * Copyright 2014, General Dynamics C4 Systems
  *
@@ -14,7 +16,8 @@ imports
   "../Types_H"
   Hardware_H
 begin
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
+
 
 type_synonym asid = "word32"
 
@@ -26,14 +29,25 @@ where ASID_def[simp]:
 datatype arch_capability =
     ASIDPoolCap machine_word asid
   | ASIDControlCap
-  | PageCap machine_word vmrights vmpage_size "(asid * vptr) option"
+  | PageCap bool machine_word vmrights vmpage_size "(asid * vptr) option"
   | PageTableCap machine_word "(asid * vptr) option"
   | PageDirectoryCap machine_word "asid option"
+  | VCPUCap machine_word
 
 primrec
-  capVPBasePtr :: "arch_capability \<Rightarrow> machine_word"
+  capVPIsDevice :: "arch_capability \<Rightarrow> bool"
 where
-  "capVPBasePtr (PageCap v0 v1 v2 v3) = v0"
+  "capVPIsDevice (PageCap v0 v1 v2 v3 v4) = v0"
+
+primrec
+  capVCPUPtr :: "arch_capability \<Rightarrow> machine_word"
+where
+  "capVCPUPtr (VCPUCap v0) = v0"
+
+primrec
+  capVPSize :: "arch_capability \<Rightarrow> vmpage_size"
+where
+  "capVPSize (PageCap v0 v1 v2 v3 v4) = v3"
 
 primrec
   capASIDPool :: "arch_capability \<Rightarrow> machine_word"
@@ -48,7 +62,7 @@ where
 primrec
   capVPRights :: "arch_capability \<Rightarrow> vmrights"
 where
-  "capVPRights (PageCap v0 v1 v2 v3) = v1"
+  "capVPRights (PageCap v0 v1 v2 v3 v4) = v2"
 
 primrec
   capPTMappedAddress :: "arch_capability \<Rightarrow> (asid * vptr) option"
@@ -66,9 +80,9 @@ where
   "capASIDBase (ASIDPoolCap v0 v1) = v1"
 
 primrec
-  capVPSize :: "arch_capability \<Rightarrow> vmpage_size"
+  capVPBasePtr :: "arch_capability \<Rightarrow> machine_word"
 where
-  "capVPSize (PageCap v0 v1 v2 v3) = v2"
+  "capVPBasePtr (PageCap v0 v1 v2 v3 v4) = v1"
 
 primrec
   capPTBasePtr :: "arch_capability \<Rightarrow> machine_word"
@@ -78,12 +92,22 @@ where
 primrec
   capVPMappedAddress :: "arch_capability \<Rightarrow> (asid * vptr) option"
 where
-  "capVPMappedAddress (PageCap v0 v1 v2 v3) = v3"
+  "capVPMappedAddress (PageCap v0 v1 v2 v3 v4) = v4"
 
 primrec
-  capVPBasePtr_update :: "(machine_word \<Rightarrow> machine_word) \<Rightarrow> arch_capability \<Rightarrow> arch_capability"
+  capVPIsDevice_update :: "(bool \<Rightarrow> bool) \<Rightarrow> arch_capability \<Rightarrow> arch_capability"
 where
-  "capVPBasePtr_update f (PageCap v0 v1 v2 v3) = PageCap (f v0) v1 v2 v3"
+  "capVPIsDevice_update f (PageCap v0 v1 v2 v3 v4) = PageCap (f v0) v1 v2 v3 v4"
+
+primrec
+  capVCPUPtr_update :: "(machine_word \<Rightarrow> machine_word) \<Rightarrow> arch_capability \<Rightarrow> arch_capability"
+where
+  "capVCPUPtr_update f (VCPUCap v0) = VCPUCap (f v0)"
+
+primrec
+  capVPSize_update :: "(vmpage_size \<Rightarrow> vmpage_size) \<Rightarrow> arch_capability \<Rightarrow> arch_capability"
+where
+  "capVPSize_update f (PageCap v0 v1 v2 v3 v4) = PageCap v0 v1 v2 (f v3) v4"
 
 primrec
   capASIDPool_update :: "(machine_word \<Rightarrow> machine_word) \<Rightarrow> arch_capability \<Rightarrow> arch_capability"
@@ -98,7 +122,7 @@ where
 primrec
   capVPRights_update :: "(vmrights \<Rightarrow> vmrights) \<Rightarrow> arch_capability \<Rightarrow> arch_capability"
 where
-  "capVPRights_update f (PageCap v0 v1 v2 v3) = PageCap v0 (f v1) v2 v3"
+  "capVPRights_update f (PageCap v0 v1 v2 v3 v4) = PageCap v0 v1 (f v2) v3 v4"
 
 primrec
   capPTMappedAddress_update :: "(((asid * vptr) option) \<Rightarrow> ((asid * vptr) option)) \<Rightarrow> arch_capability \<Rightarrow> arch_capability"
@@ -116,9 +140,9 @@ where
   "capASIDBase_update f (ASIDPoolCap v0 v1) = ASIDPoolCap v0 (f v1)"
 
 primrec
-  capVPSize_update :: "(vmpage_size \<Rightarrow> vmpage_size) \<Rightarrow> arch_capability \<Rightarrow> arch_capability"
+  capVPBasePtr_update :: "(machine_word \<Rightarrow> machine_word) \<Rightarrow> arch_capability \<Rightarrow> arch_capability"
 where
-  "capVPSize_update f (PageCap v0 v1 v2 v3) = PageCap v0 v1 (f v2) v3"
+  "capVPBasePtr_update f (PageCap v0 v1 v2 v3 v4) = PageCap v0 (f v1) v2 v3 v4"
 
 primrec
   capPTBasePtr_update :: "(machine_word \<Rightarrow> machine_word) \<Rightarrow> arch_capability \<Rightarrow> arch_capability"
@@ -128,7 +152,7 @@ where
 primrec
   capVPMappedAddress_update :: "(((asid * vptr) option) \<Rightarrow> ((asid * vptr) option)) \<Rightarrow> arch_capability \<Rightarrow> arch_capability"
 where
-  "capVPMappedAddress_update f (PageCap v0 v1 v2 v3) = PageCap v0 v1 v2 (f v3)"
+  "capVPMappedAddress_update f (PageCap v0 v1 v2 v3 v4) = PageCap v0 v1 v2 v3 (f v4)"
 
 abbreviation (input)
   ASIDPoolCap_trans :: "(machine_word) \<Rightarrow> (asid) \<Rightarrow> arch_capability" ("ASIDPoolCap'_ \<lparr> capASIDPool= _, capASIDBase= _ \<rparr>")
@@ -136,9 +160,9 @@ where
   "ASIDPoolCap_ \<lparr> capASIDPool= v0, capASIDBase= v1 \<rparr> == ASIDPoolCap v0 v1"
 
 abbreviation (input)
-  PageCap_trans :: "(machine_word) \<Rightarrow> (vmrights) \<Rightarrow> (vmpage_size) \<Rightarrow> ((asid * vptr) option) \<Rightarrow> arch_capability" ("PageCap'_ \<lparr> capVPBasePtr= _, capVPRights= _, capVPSize= _, capVPMappedAddress= _ \<rparr>")
+  PageCap_trans :: "(bool) \<Rightarrow> (machine_word) \<Rightarrow> (vmrights) \<Rightarrow> (vmpage_size) \<Rightarrow> ((asid * vptr) option) \<Rightarrow> arch_capability" ("PageCap'_ \<lparr> capVPIsDevice= _, capVPBasePtr= _, capVPRights= _, capVPSize= _, capVPMappedAddress= _ \<rparr>")
 where
-  "PageCap_ \<lparr> capVPBasePtr= v0, capVPRights= v1, capVPSize= v2, capVPMappedAddress= v3 \<rparr> == PageCap v0 v1 v2 v3"
+  "PageCap_ \<lparr> capVPIsDevice= v0, capVPBasePtr= v1, capVPRights= v2, capVPSize= v3, capVPMappedAddress= v4 \<rparr> == PageCap v0 v1 v2 v3 v4"
 
 abbreviation (input)
   PageTableCap_trans :: "(machine_word) \<Rightarrow> ((asid * vptr) option) \<Rightarrow> arch_capability" ("PageTableCap'_ \<lparr> capPTBasePtr= _, capPTMappedAddress= _ \<rparr>")
@@ -149,6 +173,11 @@ abbreviation (input)
   PageDirectoryCap_trans :: "(machine_word) \<Rightarrow> (asid option) \<Rightarrow> arch_capability" ("PageDirectoryCap'_ \<lparr> capPDBasePtr= _, capPDMappedASID= _ \<rparr>")
 where
   "PageDirectoryCap_ \<lparr> capPDBasePtr= v0, capPDMappedASID= v1 \<rparr> == PageDirectoryCap v0 v1"
+
+abbreviation (input)
+  VCPUCap_trans :: "(machine_word) \<Rightarrow> arch_capability" ("VCPUCap'_ \<lparr> capVCPUPtr= _ \<rparr>")
+where
+  "VCPUCap_ \<lparr> capVCPUPtr= v0 \<rparr> == VCPUCap v0"
 
 definition
   isASIDPoolCap :: "arch_capability \<Rightarrow> bool"
@@ -168,7 +197,7 @@ definition
   isPageCap :: "arch_capability \<Rightarrow> bool"
 where
  "isPageCap v \<equiv> case v of
-    PageCap v0 v1 v2 v3 \<Rightarrow> True
+    PageCap v0 v1 v2 v3 v4 \<Rightarrow> True
   | _ \<Rightarrow> False"
 
 definition
@@ -183,6 +212,13 @@ definition
 where
  "isPageDirectoryCap v \<equiv> case v of
     PageDirectoryCap v0 v1 \<Rightarrow> True
+  | _ \<Rightarrow> False"
+
+definition
+  isVCPUCap :: "arch_capability \<Rightarrow> bool"
+where
+ "isVCPUCap v \<equiv> case v of
+    VCPUCap v0 \<Rightarrow> True
   | _ \<Rightarrow> False"
 
 datatype asidpool =
@@ -303,17 +339,17 @@ lemma vgicAPR_vgicAPR_update [simp]:
   by (cases v) simp
 
 datatype vcpu =
-    VCPUObj "(machine_word) option" machine_word machine_word gicvcpuinterface
+    VCPUObj "(machine_word) option" machine_word gicvcpuinterface "vcpureg \<Rightarrow> machine_word"
 
 primrec
-  vcpuSCTLR :: "vcpu \<Rightarrow> machine_word"
+  vcpuRegs :: "vcpu \<Rightarrow> vcpureg \<Rightarrow> machine_word"
 where
-  "vcpuSCTLR (VCPUObj v0 v1 v2 v3) = v1"
+  "vcpuRegs (VCPUObj v0 v1 v2 v3) = v3"
 
 primrec
   vcpuVGIC :: "vcpu \<Rightarrow> gicvcpuinterface"
 where
-  "vcpuVGIC (VCPUObj v0 v1 v2 v3) = v3"
+  "vcpuVGIC (VCPUObj v0 v1 v2 v3) = v2"
 
 primrec
   vcpuTCBPtr :: "vcpu \<Rightarrow> (machine_word) option"
@@ -323,17 +359,17 @@ where
 primrec
   vcpuACTLR :: "vcpu \<Rightarrow> machine_word"
 where
-  "vcpuACTLR (VCPUObj v0 v1 v2 v3) = v2"
+  "vcpuACTLR (VCPUObj v0 v1 v2 v3) = v1"
 
 primrec
-  vcpuSCTLR_update :: "(machine_word \<Rightarrow> machine_word) \<Rightarrow> vcpu \<Rightarrow> vcpu"
+  vcpuRegs_update :: "((vcpureg \<Rightarrow> machine_word) \<Rightarrow> (vcpureg \<Rightarrow> machine_word)) \<Rightarrow> vcpu \<Rightarrow> vcpu"
 where
-  "vcpuSCTLR_update f (VCPUObj v0 v1 v2 v3) = VCPUObj v0 (f v1) v2 v3"
+  "vcpuRegs_update f (VCPUObj v0 v1 v2 v3) = VCPUObj v0 v1 v2 (f v3)"
 
 primrec
   vcpuVGIC_update :: "(gicvcpuinterface \<Rightarrow> gicvcpuinterface) \<Rightarrow> vcpu \<Rightarrow> vcpu"
 where
-  "vcpuVGIC_update f (VCPUObj v0 v1 v2 v3) = VCPUObj v0 v1 v2 (f v3)"
+  "vcpuVGIC_update f (VCPUObj v0 v1 v2 v3) = VCPUObj v0 v1 (f v2) v3"
 
 primrec
   vcpuTCBPtr_update :: "(((machine_word) option) \<Rightarrow> ((machine_word) option)) \<Rightarrow> vcpu \<Rightarrow> vcpu"
@@ -343,31 +379,31 @@ where
 primrec
   vcpuACTLR_update :: "(machine_word \<Rightarrow> machine_word) \<Rightarrow> vcpu \<Rightarrow> vcpu"
 where
-  "vcpuACTLR_update f (VCPUObj v0 v1 v2 v3) = VCPUObj v0 v1 (f v2) v3"
+  "vcpuACTLR_update f (VCPUObj v0 v1 v2 v3) = VCPUObj v0 (f v1) v2 v3"
 
 abbreviation (input)
-  VCPUObj_trans :: "((machine_word) option) \<Rightarrow> (machine_word) \<Rightarrow> (machine_word) \<Rightarrow> (gicvcpuinterface) \<Rightarrow> vcpu" ("VCPUObj'_ \<lparr> vcpuTCBPtr= _, vcpuSCTLR= _, vcpuACTLR= _, vcpuVGIC= _ \<rparr>")
+  VCPUObj_trans :: "((machine_word) option) \<Rightarrow> (machine_word) \<Rightarrow> (gicvcpuinterface) \<Rightarrow> (vcpureg \<Rightarrow> machine_word) \<Rightarrow> vcpu" ("VCPUObj'_ \<lparr> vcpuTCBPtr= _, vcpuACTLR= _, vcpuVGIC= _, vcpuRegs= _ \<rparr>")
 where
-  "VCPUObj_ \<lparr> vcpuTCBPtr= v0, vcpuSCTLR= v1, vcpuACTLR= v2, vcpuVGIC= v3 \<rparr> == VCPUObj v0 v1 v2 v3"
+  "VCPUObj_ \<lparr> vcpuTCBPtr= v0, vcpuACTLR= v1, vcpuVGIC= v2, vcpuRegs= v3 \<rparr> == VCPUObj v0 v1 v2 v3"
 
-lemma vcpuSCTLR_vcpuSCTLR_update [simp]:
-  "vcpuSCTLR (vcpuSCTLR_update f v) = f (vcpuSCTLR v)"
+lemma vcpuRegs_vcpuRegs_update [simp]:
+  "vcpuRegs (vcpuRegs_update f v) = f (vcpuRegs v)"
   by (cases v) simp
 
-lemma vcpuSCTLR_vcpuVGIC_update [simp]:
-  "vcpuSCTLR (vcpuVGIC_update f v) = vcpuSCTLR v"
+lemma vcpuRegs_vcpuVGIC_update [simp]:
+  "vcpuRegs (vcpuVGIC_update f v) = vcpuRegs v"
   by (cases v) simp
 
-lemma vcpuSCTLR_vcpuTCBPtr_update [simp]:
-  "vcpuSCTLR (vcpuTCBPtr_update f v) = vcpuSCTLR v"
+lemma vcpuRegs_vcpuTCBPtr_update [simp]:
+  "vcpuRegs (vcpuTCBPtr_update f v) = vcpuRegs v"
   by (cases v) simp
 
-lemma vcpuSCTLR_vcpuACTLR_update [simp]:
-  "vcpuSCTLR (vcpuACTLR_update f v) = vcpuSCTLR v"
+lemma vcpuRegs_vcpuACTLR_update [simp]:
+  "vcpuRegs (vcpuACTLR_update f v) = vcpuRegs v"
   by (cases v) simp
 
-lemma vcpuVGIC_vcpuSCTLR_update [simp]:
-  "vcpuVGIC (vcpuSCTLR_update f v) = vcpuVGIC v"
+lemma vcpuVGIC_vcpuRegs_update [simp]:
+  "vcpuVGIC (vcpuRegs_update f v) = vcpuVGIC v"
   by (cases v) simp
 
 lemma vcpuVGIC_vcpuVGIC_update [simp]:
@@ -382,8 +418,8 @@ lemma vcpuVGIC_vcpuACTLR_update [simp]:
   "vcpuVGIC (vcpuACTLR_update f v) = vcpuVGIC v"
   by (cases v) simp
 
-lemma vcpuTCBPtr_vcpuSCTLR_update [simp]:
-  "vcpuTCBPtr (vcpuSCTLR_update f v) = vcpuTCBPtr v"
+lemma vcpuTCBPtr_vcpuRegs_update [simp]:
+  "vcpuTCBPtr (vcpuRegs_update f v) = vcpuTCBPtr v"
   by (cases v) simp
 
 lemma vcpuTCBPtr_vcpuVGIC_update [simp]:
@@ -398,8 +434,8 @@ lemma vcpuTCBPtr_vcpuACTLR_update [simp]:
   "vcpuTCBPtr (vcpuACTLR_update f v) = vcpuTCBPtr v"
   by (cases v) simp
 
-lemma vcpuACTLR_vcpuSCTLR_update [simp]:
-  "vcpuACTLR (vcpuSCTLR_update f v) = vcpuACTLR v"
+lemma vcpuACTLR_vcpuRegs_update [simp]:
+  "vcpuACTLR (vcpuRegs_update f v) = vcpuACTLR v"
   by (cases v) simp
 
 lemma vcpuACTLR_vcpuVGIC_update [simp]:
@@ -418,9 +454,60 @@ datatype arch_kernel_object =
     KOASIDPool asidpool
   | KOPTE pte
   | KOPDE pde
+  | KOVCPU vcpu
+
+datatype arch_tcb =
+    ArchThread user_context "(machine_word) option"
+
+primrec
+  atcbVCPUPtr :: "arch_tcb \<Rightarrow> (machine_word) option"
+where
+  "atcbVCPUPtr (ArchThread v0 v1) = v1"
+
+primrec
+  atcbContext :: "arch_tcb \<Rightarrow> user_context"
+where
+  "atcbContext (ArchThread v0 v1) = v0"
+
+primrec
+  atcbVCPUPtr_update :: "(((machine_word) option) \<Rightarrow> ((machine_word) option)) \<Rightarrow> arch_tcb \<Rightarrow> arch_tcb"
+where
+  "atcbVCPUPtr_update f (ArchThread v0 v1) = ArchThread v0 (f v1)"
+
+primrec
+  atcbContext_update :: "(user_context \<Rightarrow> user_context) \<Rightarrow> arch_tcb \<Rightarrow> arch_tcb"
+where
+  "atcbContext_update f (ArchThread v0 v1) = ArchThread (f v0) v1"
+
+abbreviation (input)
+  ArchThread_trans :: "(user_context) \<Rightarrow> ((machine_word) option) \<Rightarrow> arch_tcb" ("ArchThread'_ \<lparr> atcbContext= _, atcbVCPUPtr= _ \<rparr>")
+where
+  "ArchThread_ \<lparr> atcbContext= v0, atcbVCPUPtr= v1 \<rparr> == ArchThread v0 v1"
+
+lemma atcbVCPUPtr_atcbVCPUPtr_update [simp]:
+  "atcbVCPUPtr (atcbVCPUPtr_update f v) = f (atcbVCPUPtr v)"
+  by (cases v) simp
+
+lemma atcbVCPUPtr_atcbContext_update [simp]:
+  "atcbVCPUPtr (atcbContext_update f v) = atcbVCPUPtr v"
+  by (cases v) simp
+
+lemma atcbContext_atcbVCPUPtr_update [simp]:
+  "atcbContext (atcbVCPUPtr_update f v) = atcbContext v"
+  by (cases v) simp
+
+lemma atcbContext_atcbContext_update [simp]:
+  "atcbContext (atcbContext_update f v) = f (atcbContext v)"
+  by (cases v) simp
 
 consts'
 archObjSize :: "arch_kernel_object \<Rightarrow> nat"
+
+consts'
+atcbContextSet :: "user_context \<Rightarrow> arch_tcb \<Rightarrow> arch_tcb"
+
+consts'
+atcbContextGet :: "arch_tcb \<Rightarrow> user_context"
 
 consts'
 asidHighBits :: "nat"
@@ -442,13 +529,26 @@ makeVCPUObject :: "vcpu"
 
 defs archObjSize_def:
 "archObjSize a\<equiv> (case a of
-                  KOASIDPool v10 \<Rightarrow>   pageBits
-                | KOPTE v11 \<Rightarrow>   2
-                | KOPDE v12 \<Rightarrow>   2
+                  KOASIDPool v21 \<Rightarrow>   pageBits
+                | KOPTE v22 \<Rightarrow>   pteBits
+                | KOPDE v23 \<Rightarrow>   pdeBits
+                | KOVCPU v24 \<Rightarrow>   vcpuBits
                 )"
 
+definition
+"newArchTCB \<equiv> ArchThread_ \<lparr>
+    atcbContext= newContext
+    ,atcbVCPUPtr= Nothing
+    \<rparr>"
+
+defs atcbContextSet_def:
+"atcbContextSet uc atcb \<equiv> atcb \<lparr> atcbContext := uc \<rparr>"
+
+defs atcbContextGet_def:
+"atcbContextGet \<equiv> atcbContext"
+
 defs asidHighBits_def:
-"asidHighBits \<equiv> 8"
+"asidHighBits \<equiv> 6"
 
 defs asidLowBits_def:
 "asidLowBits \<equiv> 10"
@@ -463,42 +563,28 @@ defs asidHighBitsOf_def:
 "asidHighBitsOf asid\<equiv> (asid `~shiftR~` asidLowBits) && mask asidHighBits"
 
 definition
-"gicVCPUMaxNumLR\<equiv> (64 ::nat)"
+"vcpuSCTLR vcpu \<equiv> vcpuRegs vcpu VCPURegSCTLR"
 
-definition
-"hcrVCPU\<equiv>  (0x87039 ::machine_word)"
 
-definition
-"hcrNative\<equiv> (0xfe8703b ::machine_word)"
-
-definition
-"vgicHCREN\<equiv> (0x1 ::machine_word)"
-
-definition
-"sctlrDefault\<equiv> (0xc5187c ::machine_word)"
-
-definition
-"actlrDefault\<equiv> (0x40 ::machine_word)"
-
+(* we define makeVCPUObject_def manually because we want a total function vgicLR *)
 defs makeVCPUObject_def:
 "makeVCPUObject \<equiv>
-    let vgicLR = funPartialArray (const (0 ::machine_word)) (0, gicVCPUMaxNumLR- 1) in
     VCPUObj_ \<lparr>
           vcpuTCBPtr= Nothing
-        , vcpuSCTLR= sctlrDefault
         , vcpuACTLR= actlrDefault
         , vcpuVGIC= VGICInterface_ \<lparr>
                           vgicHCR= vgicHCREN
                         , vgicVMCR= 0
                         , vgicAPR= 0
-                        , vgicLR= vgicLR
+                        , vgicLR= (\<lambda>_. 0)
                         \<rparr>
+        , vcpuRegs= funArray (const 0)  aLU  [(VCPURegSCTLR, sctlrDefault)]
         \<rparr>"
-
 
 datatype arch_kernel_object_type =
     PDET
   | PTET
+  | VCPUT
   | ASIDPoolT
 
 primrec
@@ -506,7 +592,15 @@ primrec
 where
   "archTypeOf (KOPDE e) = PDET"
 | "archTypeOf (KOPTE e) = PTET"
+| "archTypeOf (KOVCPU e) = VCPUT"
 | "archTypeOf (KOASIDPool e) = ASIDPoolT"
+
+end
+
+context begin interpretation Arch .
+
+requalify_types
+  vcpu
 
 end
 end

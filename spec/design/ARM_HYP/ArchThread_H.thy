@@ -1,3 +1,5 @@
+(* THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT EDIT. *)
+(* instead, see the skeleton file ArchThread_H.thy *)
 (*
  * Copyright 2014, General Dynamics C4 Systems
  *
@@ -15,16 +17,14 @@ imports
   ArchThreadDecls_H
   "../TCBDecls_H"
   ArchVSpaceDecls_H
+  ArchHypervisor_H
 begin
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 defs switchToThread_def:
 "switchToThread tcb\<equiv> (do
     setVMRoot tcb;
-    globals \<leftarrow> gets $ armKSGlobalsFrame \<circ> ksArchState;
-    bufferPtr \<leftarrow> threadGet tcbIPCBuffer tcb;
-    storeWordUser globals $ fromVPtr bufferPtr;
-    doMachineOp $ ARM.clearExMonitor
+    doMachineOp $ ARM_HYP.clearExMonitor
 od)"
 
 defs configureIdleThread_def:
@@ -36,10 +36,9 @@ defs configureIdleThread_def:
 )"
 
 defs switchToIdleThread_def:
-"switchToIdleThread\<equiv> (do
- globals \<leftarrow> gets $ armKSGlobalsFrame \<circ> ksArchState;
- storeWordUser globals 0
-od)"
+"switchToIdleThread\<equiv> (
+   vcpuSwitch Nothing
+)"
 
 defs activateIdleThread_def:
 "activateIdleThread arg1 \<equiv> return ()"

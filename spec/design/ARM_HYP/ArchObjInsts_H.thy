@@ -1,3 +1,5 @@
+(* THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT EDIT. *)
+(* instead, see the skeleton file ArchObjInsts_H.thy *)
 (*
  * Copyright 2014, General Dynamics C4 Systems
  *
@@ -20,9 +22,9 @@ imports
   "../PSpaceStorable_H"
   "../ObjectInstances_H"
 begin
-qualify ARM_H (in Arch)
+qualify ARM_HYP_H (in Arch)
 
-instantiation ARM_H.pde :: pre_storable
+instantiation ARM_HYP_H.pde :: pre_storable
 begin
 interpretation Arch .
 
@@ -45,7 +47,7 @@ instance
 
 end
 
-instantiation ARM_H.pte :: pre_storable
+instantiation ARM_HYP_H.pte :: pre_storable
 begin
 interpretation Arch .
 
@@ -68,8 +70,30 @@ instance
 
 end
 
+instantiation ARM_HYP_H.vcpu :: pre_storable
+begin
+interpretation Arch .
 
-instantiation ARM_H.asidpool :: pre_storable
+definition
+  projectKO_opt_vcpu:
+  "projectKO_opt e \<equiv> case e of KOArch (KOVCPU e) \<Rightarrow> Some e | _ \<Rightarrow> None"
+
+definition
+  injectKO_vcpu:
+  "injectKO e \<equiv> KOArch (KOVCPU e)"
+
+definition
+  koType_vcpu:
+  "koType (t::vcpu itself) \<equiv> ArchT VCPUT"
+
+instance
+  by (intro_classes,
+      auto simp: projectKO_opt_vcpu injectKO_vcpu koType_vcpu 
+          split: kernel_object.splits arch_kernel_object.splits)
+
+end
+
+instantiation ARM_HYP_H.asidpool :: pre_storable
 begin
 interpretation Arch .
 
@@ -93,19 +117,21 @@ instance
 end
 
 lemmas (in Arch) projectKO_opts_defs = 
-  projectKO_opt_pde projectKO_opt_pte projectKO_opt_asidpool
+  projectKO_opt_pde projectKO_opt_pte projectKO_opt_vcpu projectKO_opt_asidpool
   ObjectInstances_H.projectKO_opts_defs
 
 lemmas (in Arch) [simp] =
   injectKO_pde koType_pde
   injectKO_pte koType_pte
+  injectKO_vcpu koType_vcpu
   injectKO_asidpool koType_asidpool
 
 -- --------------------------------------
 
 
 
-instantiation ARM_H.pde :: pspace_storable
+
+instantiation ARM_HYP_H.pde :: pspace_storable
 begin
 interpretation Arch .
 
@@ -135,7 +161,7 @@ instance
 
 end
 
-instantiation ARM_H.pte :: pspace_storable
+instantiation ARM_HYP_H.pte :: pspace_storable
 begin
 interpretation Arch .
 
@@ -197,7 +223,7 @@ end
 
 (* This is hard coded since using funArray in haskell for 2^32 bound is risky *)
 
-instantiation ARM_H.asidpool :: pspace_storable
+instantiation ARM_HYP_H.asidpool :: pspace_storable
 begin
 interpretation Arch .
 

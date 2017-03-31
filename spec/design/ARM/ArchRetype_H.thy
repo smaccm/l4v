@@ -52,24 +52,33 @@ defs maskCapRights_def:
   )"
 
 defs finaliseCap_def:
-"finaliseCap x0 x1\<equiv> (case (x0, x1) of
-    ((ASIDPoolCap ptr b), True) \<Rightarrow>    (do
+"finaliseCap x0 x1\<equiv> (let (cap, bl) = (x0, x1) in
+  if isASIDPoolCap cap \<and> bl
+  then let b = capASIDBase cap; ptr = capASIDPool cap
+  in   (do
     deleteASIDPool b ptr;
     return NullCap
-    od)
-  | ((PageDirectoryCap ptr (Some a)), True) \<Rightarrow>    (do
+  od)
+  else if isPageDirectoryCap cap \<and> bl \<and> capPDMappedASID cap \<noteq> None
+  then let a = the (capPDMappedASID cap); ptr = capPDBasePtr cap
+  in   (do
     deleteASID a ptr;
     return NullCap
   od)
-  | ((PageTableCap ptr (Some (a, v))), True) \<Rightarrow>    (do
+  else if isPageTableCap cap \<and> bl \<and> capPTMappedAddress cap \<noteq> None
+  then let (a, v) = the (capPTMappedAddress cap); ptr = capPTBasePtr cap
+  in   (do
     unmapPageTable a v ptr;
     return NullCap
   od)
-  | ((PageCap _ ptr _ s (Some (a, v))), _) \<Rightarrow>    (do
-        unmapPage s a v ptr;
-        return NullCap
-  od)
-  | (_, _) \<Rightarrow>    return NullCap
+  else if isPageCap cap \<and> capVPMappedAddress cap \<noteq> None
+  then let (a, v) = the (capVPMappedAddress cap); s = capVPSize cap; ptr = capVPBasePtr cap
+  in  
+           (do
+              unmapPage s a v ptr;
+              return NullCap
+           od)
+  else   return NullCap
   )"
 
 defs sameRegionAs_def:
@@ -123,7 +132,8 @@ defs placeNewDataObject_def:
 defs createObject_def:
 "createObject t regionBase arg3 isDevice \<equiv>
     let funupd = (\<lambda> f x v y. if y = x then v else f y) in
-    let pointerCast = PPtr \<circ> fromPPtr
+    let pointerCast = PPtr \<circ> fromPPtr in
+    let mkPageCap = \<lambda> sz. PageCap isDevice (pointerCast regionBase) VMReadWrite sz Nothing
     in (case t of 
         APIObjectType v2 \<Rightarrow> 
             haskell_fail []
@@ -132,32 +142,28 @@ defs createObject_def:
             modify (\<lambda> ks. ks \<lparr> gsUserPages :=
               funupd (gsUserPages ks)
                      (fromPPtr regionBase) (Just ARMSmallPage)\<rparr>);
-            return $ PageCap isDevice (pointerCast regionBase)
-                  VMReadWrite ARMSmallPage Nothing
+            return $ mkPageCap ARMSmallPage
         od)
         | LargePageObject \<Rightarrow>  (do
             placeNewDataObject regionBase 4 isDevice;
             modify (\<lambda> ks. ks \<lparr> gsUserPages :=
               funupd (gsUserPages ks)
                      (fromPPtr regionBase) (Just ARMLargePage)\<rparr>);
-            return $ PageCap isDevice (pointerCast regionBase)
-                  VMReadWrite ARMLargePage Nothing
+            return $ mkPageCap ARMLargePage
         od)
         | SectionObject \<Rightarrow>  (do
             placeNewDataObject regionBase 8 isDevice;
             modify (\<lambda> ks. ks \<lparr> gsUserPages :=
               funupd (gsUserPages ks)
                      (fromPPtr regionBase) (Just ARMSection)\<rparr>);
-            return $ PageCap isDevice (pointerCast regionBase)
-                  VMReadWrite ARMSection Nothing
+            return $ mkPageCap ARMSection
         od)
         | SuperSectionObject \<Rightarrow>  (do
             placeNewDataObject regionBase 12 isDevice;
             modify (\<lambda> ks. ks \<lparr> gsUserPages :=
               funupd (gsUserPages ks)
                      (fromPPtr regionBase) (Just ARMSuperSection)\<rparr>);
-            return $ PageCap isDevice (pointerCast regionBase)
-                  VMReadWrite ARMSuperSection Nothing
+            return $ mkPageCap ARMSuperSection
         od)
         | PageTableObject \<Rightarrow>  (do
             ptSize \<leftarrow> return ( ptBits - objBits (makeObject ::pte));
@@ -178,10 +184,16 @@ defs createObject_def:
         )"
 
 defs decodeInvocation_def:
-"decodeInvocation \<equiv> decodeARMMMUInvocation"
+"decodeInvocation label args capIndex slot cap extraCaps \<equiv>
+    (case cap of
+         _ \<Rightarrow>   decodeARMMMUInvocation label args capIndex slot cap extraCaps
+       )"
 
 defs performInvocation_def:
-"performInvocation \<equiv> performARMMMUInvocation"
+"performInvocation i \<equiv>
+    (case i of
+                   _ \<Rightarrow>   performARMMMUInvocation i
+                 )"
 
 defs capUntypedPtr_def:
 "capUntypedPtr x0\<equiv> (case x0 of
@@ -194,11 +206,11 @@ defs capUntypedPtr_def:
 
 defs capUntypedSize_def:
 "capUntypedSize x0\<equiv> (case x0 of
-    (PageCap _ _ _ sz _) \<Rightarrow>    1 `~shiftL~` pageBitsForSize sz
-  | (PageTableCap _ _) \<Rightarrow>    1 `~shiftL~` 10
-  | (PageDirectoryCap _ _) \<Rightarrow>    1 `~shiftL~` 14
-  | (ASIDControlCap ) \<Rightarrow>    1 `~shiftL~` (asidHighBits + 2)
-  | (ASIDPoolCap _ _) \<Rightarrow>    1 `~shiftL~` (asidLowBits + 2)
+    (PageCap _ _ _ sz _) \<Rightarrow>    bit (pageBitsForSize sz)
+  | (PageTableCap _ _) \<Rightarrow>    bit ptBits
+  | (PageDirectoryCap _ _) \<Rightarrow>    bit pdBits
+  | (ASIDControlCap ) \<Rightarrow>    bit (asidHighBits + 2)
+  | (ASIDPoolCap _ _) \<Rightarrow>    bit (asidLowBits + 2)
   )"
 
 defs prepareThreadDelete_def:

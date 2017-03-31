@@ -1,3 +1,5 @@
+(* THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT EDIT. *)
+(* instead, see the skeleton file ArchVSpaceDecls_H.thy *)
 (*
  * Copyright 2014, General Dynamics C4 Systems
  *
@@ -13,7 +15,7 @@ chapter "Retyping Objects"
 theory ArchVSpaceDecls_H
 imports ArchRetypeDecls_H "../InvocationLabels_H"
 begin
-context Arch begin global_naming ARM_H
+context Arch begin global_naming ARM_HYP_H
 
 consts'
 globalsBase :: "vptr"
@@ -26,9 +28,6 @@ idleThreadCode :: "machine_word list"
 
 consts'
 mapKernelWindow :: "unit kernel"
-
-consts'
-createSectionPDE :: "vptr \<Rightarrow> unit kernel"
 
 consts'
 mapKernelDevice :: "(paddr * machine_word) \<Rightarrow> unit kernel"
@@ -86,6 +85,12 @@ createDeviceFrames :: "capability \<Rightarrow> unit kernel_init"
 
 consts'
 copyGlobalMappings :: "machine_word \<Rightarrow> unit kernel"
+
+consts'
+largePagePTEOffsets :: "machine_word list"
+
+consts'
+superSectionPDEOffsets :: "machine_word list"
 
 consts'
 createMappingEntries :: "paddr \<Rightarrow> vptr \<Rightarrow> vmpage_size \<Rightarrow> vmrights \<Rightarrow> vmattributes \<Rightarrow> machine_word \<Rightarrow> ( syscall_error , ((pte * machine_word list) + (pde * machine_word list)) ) kernel_f"
@@ -215,9 +220,6 @@ pageBase :: "vptr \<Rightarrow> vmpage_size \<Rightarrow> vptr"
 
 consts'
 resolveVAddr :: "machine_word \<Rightarrow> vptr \<Rightarrow> ((vmpage_size * paddr) option) kernel"
-
-consts'
-isIOSpaceFrameCap :: "arch_capability \<Rightarrow> bool"
 
 consts'
 decodeARMMMUInvocation :: "machine_word \<Rightarrow> machine_word list \<Rightarrow> cptr \<Rightarrow> machine_word \<Rightarrow> arch_capability \<Rightarrow> (capability * machine_word) list \<Rightarrow> ( syscall_error , invocation ) kernel_f"

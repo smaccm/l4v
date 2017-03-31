@@ -70,7 +70,7 @@ defs handleEvent_def:
         | SysNBRecv \<Rightarrow>   withoutPreemption $ handleRecv False
         )
   | Interrupt \<Rightarrow>    withoutPreemption $ (do
-    active \<leftarrow> doMachineOp getActiveIRQ;
+    active \<leftarrow> doMachineOp (getActiveIRQ False);
     (case active of
           Some irq \<Rightarrow>   handleInterrupt irq
         | None \<Rightarrow>   doMachineOp $ debugPrint []
@@ -94,8 +94,7 @@ defs handleEvent_def:
   od)
   | (HypervisorEvent hypType) \<Rightarrow>    withoutPreemption $ (do
     thread \<leftarrow> getCurThread;
-    handleHypervisorFault thread hypType;
-    return ()
+    handleHypervisorFault thread hypType
   od)
   )"
 

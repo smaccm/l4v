@@ -1,3 +1,5 @@
+(* THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT EDIT. *)
+(* instead, see the skeleton file VCPU_H.thy *)
 (*
  * Copyright 2014, General Dynamics C4 Systems
  *
@@ -41,12 +43,23 @@ where
     vcpuTCB \<leftarrow> return ( vcpuTCBPtr vcpu);
     when (tcbVCPU \<noteq> Just vcpuPtr \<or> vcpuTCB \<noteq> Just tcbPtr) $
         haskell_fail [];
+    hsCurVCPU \<leftarrow> gets (armHSCurVCPU \<circ> ksArchState);
+    (case hsCurVCPU of
+          Some (curVCPU, _) \<Rightarrow>   when (curVCPU = vcpuPtr) vcpuInvalidateActive
+        | _ \<Rightarrow>   return ()
+        );
     setObject vcpuPtr $ vcpu \<lparr> vcpuTCBPtr := Nothing \<rparr>;
-    archThreadSet (\<lambda> atcb. atcb \<lparr> atcbVCPUPtr := Nothing \<rparr>) tcbPtr
+    archThreadSet (\<lambda> atcb. atcb \<lparr> atcbVCPUPtr := Nothing \<rparr>) tcbPtr;
+    tcb \<leftarrow> getObject tcbPtr;
+    asUser tcbPtr $ ((do
+        cpsr \<leftarrow> getRegister (Register CPSR);
+        setRegister (Register CPSR) $ sanitiseRegister tcb (Register CPSR) cpsr
+    od)
+        )
 od)"
 
 definition
-associateVCPUTCB :: "machine_word \<Rightarrow> machine_word \<Rightarrow> unit kernel"
+associateVCPUTCB :: "machine_word \<Rightarrow> machine_word \<Rightarrow> machine_word list kernel"
 where
 "associateVCPUTCB vcpuPtr tcbPtr\<equiv> (do
     tcbVCPU \<leftarrow> archThreadGet atcbVCPUPtr tcbPtr;
@@ -60,7 +73,8 @@ where
         | _ \<Rightarrow>   return ()
         );
     archThreadSet (\<lambda> atcb. atcb \<lparr> atcbVCPUPtr := Just vcpuPtr \<rparr>) tcbPtr;
-    setObject vcpuPtr $ vcpu \<lparr> vcpuTCBPtr := Just tcbPtr \<rparr>
+    setObject vcpuPtr $ vcpu \<lparr> vcpuTCBPtr := Just tcbPtr \<rparr>;
+    return []
 od)"
 
 definition
@@ -69,9 +83,10 @@ where
 "decodeVCPUReadReg x0 x1\<equiv> (let (ls, cap) = (x0, x1) in
   if isVCPUCap cap \<and> length ls > 0
   then let field = ls ! 0 in   (doE
-    whenE (field \<noteq> 0) $ throw (InvalidArgument 1);
+    reg \<leftarrow> returnOk ( fromIntegral field);
+    whenE (reg > (fromEnum (maxBound ::vcpureg))) $ throw (InvalidArgument 1);
     returnOk $ InvokeVCPU $
-        VCPUReadRegister (capVCPUPtr cap) (fromIntegral field)
+        VCPUReadRegister (capVCPUPtr cap) (toEnum reg)
   odE)
   else   throw TruncatedMessage
   )"
@@ -83,9 +98,10 @@ where
   if isVCPUCap cap \<and> length ls > 1
   then let field = ls ! 0; val = ls ! 1
   in   (doE
-    whenE (field \<noteq> 0) $ throw (InvalidArgument 1);
+    reg \<leftarrow> returnOk ( fromIntegral field);
+    whenE (reg > (fromEnum (maxBound ::vcpureg))) $ throw (InvalidArgument 1);
     returnOk $ InvokeVCPU $ VCPUWriteRegister (capVCPUPtr cap)
-                (fromIntegral field) (fromIntegral val)
+                (toEnum reg) (fromIntegral val)
   odE)
   else   throw TruncatedMessage
   )"
@@ -93,61 +109,95 @@ where
 definition
 readVCPUReg :: "machine_word \<Rightarrow> hyper_reg \<Rightarrow> hyper_reg_val kernel"
 where
-"readVCPUReg vcpuPtr reg\<equiv> (
-    if reg = 0
-        then (do
+"readVCPUReg vcpuPtr reg\<equiv> (do
+    hsCurVCPU \<leftarrow> gets (armHSCurVCPU \<circ> ksArchState);
+    (onCurVCPU, active) \<leftarrow> return $ (case hsCurVCPU of
+          Some (curVCPU, a) \<Rightarrow>   (curVCPU = vcpuPtr, a)
+        | _ \<Rightarrow>   (False, False)
+        );
+    if onCurVCPU
+        then (case reg of
+                   VCPURegSCTLR \<Rightarrow>   if active then doMachineOp getSCTLR
+                                           else (do
+                                               vcpu \<leftarrow> getObject vcpuPtr;
+                                               return $ vcpuRegs vcpu reg
+                                           od)
+                 | VCPURegLRsvc \<Rightarrow>   doMachineOp get_lr_svc
+                 | VCPURegSPsvc \<Rightarrow>   doMachineOp get_sp_svc
+                 | VCPURegLRabt \<Rightarrow>   doMachineOp get_lr_abt
+                 | VCPURegSPabt \<Rightarrow>   doMachineOp get_sp_abt
+                 | VCPURegLRund \<Rightarrow>   doMachineOp get_lr_und
+                 | VCPURegSPund \<Rightarrow>   doMachineOp get_sp_und
+                 | VCPURegLRirq \<Rightarrow>   doMachineOp get_lr_irq
+                 | VCPURegSPirq \<Rightarrow>   doMachineOp get_sp_irq
+                 | VCPURegLRfiq \<Rightarrow>   doMachineOp get_lr_fiq
+                 | VCPURegSPfiq \<Rightarrow>   doMachineOp get_sp_fiq
+                 | VCPURegR8fiq \<Rightarrow>   doMachineOp get_r8_fiq
+                 | VCPURegR9fiq \<Rightarrow>   doMachineOp get_r9_fiq
+                 | VCPURegR10fiq \<Rightarrow>   doMachineOp get_r10_fiq
+                 | VCPURegR11fiq \<Rightarrow>   doMachineOp get_r11_fiq
+                 | VCPURegR12fiq \<Rightarrow>   doMachineOp get_r12_fiq
+                 )
+        else (do
             vcpu \<leftarrow> getObject vcpuPtr;
-            return $ vcpuSCTLR vcpu
+            return $ vcpuRegs vcpu reg
         od)
-        else haskell_fail []
-)"
+od)"
 
 definition
 writeVCPUReg :: "machine_word \<Rightarrow> hyper_reg \<Rightarrow> hyper_reg_val \<Rightarrow> unit kernel"
 where
-"writeVCPUReg vcpuPtr reg val \<equiv>
-    if reg = 0
-        then (do
-            vcpu \<leftarrow> getObject vcpuPtr;
-            setObject vcpuPtr $ vcpu \<lparr> vcpuSCTLR := val \<rparr>
-        od)
-        else haskell_fail []"
-
-definition
-invokeVCPUReadReg :: "machine_word \<Rightarrow> hyper_reg \<Rightarrow> unit kernel"
-where
-"invokeVCPUReadReg vcpuPtr reg\<equiv> (do
-    ct \<leftarrow> getCurThread;
+"writeVCPUReg vcpuPtr reg val\<equiv> (do
     hsCurVCPU \<leftarrow> gets (armHSCurVCPU \<circ> ksArchState);
-    (case hsCurVCPU of
-          Some (vcpuPtr, _) \<Rightarrow>  
-           vcpuCleanInvalidateActive
-        | _ \<Rightarrow>   return ()
+    (onCurVCPU, active) \<leftarrow> return $ (case hsCurVCPU of
+          Some (curVCPU, a) \<Rightarrow>   (curVCPU = vcpuPtr, a)
+        | _ \<Rightarrow>   (False, False)
         );
-    val \<leftarrow> readVCPUReg vcpuPtr reg;
-    asUser ct $ setRegister (msgRegisters ! 0) $ fromIntegral val;
-    msgInfo \<leftarrow> return ( MI_ \<lparr>
-            msgLength= 1,
-            msgExtraCaps= 0,
-            msgCapsUnwrapped= 0,
-            msgLabel= 0 \<rparr>);
-    setMessageInfo ct msgInfo;
-    setThreadState Running ct
+    if onCurVCPU
+        then (case reg of
+                   VCPURegSCTLR \<Rightarrow>   if active then doMachineOp $ setSCTLR val
+                                           else (do
+                                               vcpu \<leftarrow> getObject vcpuPtr;
+                                               setObject vcpuPtr $ vcpu \<lparr> vcpuRegs := vcpuRegs vcpu  aLU  [(reg, val)] \<rparr>
+                                           od)
+                 | VCPURegLRsvc \<Rightarrow>   doMachineOp $ set_lr_svc val
+                 | VCPURegSPsvc \<Rightarrow>   doMachineOp $ set_sp_svc val
+                 | VCPURegLRabt \<Rightarrow>   doMachineOp $ set_lr_abt val
+                 | VCPURegSPabt \<Rightarrow>   doMachineOp $ set_sp_abt val
+                 | VCPURegLRund \<Rightarrow>   doMachineOp $ set_lr_und val
+                 | VCPURegSPund \<Rightarrow>   doMachineOp $ set_sp_und val
+                 | VCPURegLRirq \<Rightarrow>   doMachineOp $ set_lr_irq val
+                 | VCPURegSPirq \<Rightarrow>   doMachineOp $ set_sp_irq val
+                 | VCPURegLRfiq \<Rightarrow>   doMachineOp $ set_lr_fiq val
+                 | VCPURegSPfiq \<Rightarrow>   doMachineOp $ set_sp_fiq val
+                 | VCPURegR8fiq \<Rightarrow>   doMachineOp $ set_r8_fiq val
+                 | VCPURegR9fiq \<Rightarrow>   doMachineOp $ set_r9_fiq val
+                 | VCPURegR10fiq \<Rightarrow>   doMachineOp $ set_r10_fiq val
+                 | VCPURegR11fiq \<Rightarrow>   doMachineOp $ set_r11_fiq val
+                 | VCPURegR12fiq \<Rightarrow>   doMachineOp $ set_r12_fiq val
+                 )
+        else (do
+            vcpu \<leftarrow> getObject vcpuPtr;
+            setObject vcpuPtr $ vcpu \<lparr> vcpuRegs := vcpuRegs vcpu  aLU  [(reg, val)] \<rparr>
+        od)
 od)"
 
 definition
-invokeVCPUWriteReg :: "machine_word \<Rightarrow> hyper_reg \<Rightarrow> hyper_reg_val \<Rightarrow> unit kernel"
+invokeVCPUReadReg :: "machine_word \<Rightarrow> hyper_reg \<Rightarrow> machine_word list kernel"
+where
+"invokeVCPUReadReg vcpuPtr reg\<equiv> (do
+    ct \<leftarrow> getCurThread;
+    val \<leftarrow> readVCPUReg vcpuPtr reg;
+    return [val]
+od)"
+
+definition
+invokeVCPUWriteReg :: "machine_word \<Rightarrow> hyper_reg \<Rightarrow> hyper_reg_val \<Rightarrow> machine_word list kernel"
 where
 "invokeVCPUWriteReg vcpuPtr reg val\<equiv> (do
     hsCurVCPU \<leftarrow> gets (armHSCurVCPU \<circ> ksArchState);
-    (case hsCurVCPU of
-          Some (vcpuPtr, _) \<Rightarrow>  
-            vcpuCleanInvalidateActive
-        | _ \<Rightarrow>   return ()
-        );
     writeVCPUReg vcpuPtr reg val;
-    ct \<leftarrow> getCurThread;
-    setThreadState Restart ct
+    return []
 od)"
 
 definition
@@ -162,6 +212,11 @@ where
     in
     (grp `~shiftL~` groupShift) || (prio `~shiftL~` prioShift) || irq ||
         irqPending || eoiirqen"
+
+definition
+virqType :: "machine_word \<Rightarrow> nat"
+where
+"virqType virq\<equiv> fromIntegral $ (virq `~shiftR~` 28) && 3"
 
 definition
 decodeVCPUInjectIRQ :: "machine_word list \<Rightarrow> arch_capability \<Rightarrow> ( syscall_error , Arch.invocation ) kernel_f"
@@ -191,25 +246,24 @@ where
   )"
 
 definition
-invokeVCPUInjectIRQ :: "machine_word \<Rightarrow> nat \<Rightarrow> virq \<Rightarrow> unit kernel"
+invokeVCPUInjectIRQ :: "machine_word \<Rightarrow> nat \<Rightarrow> virq \<Rightarrow> machine_word list kernel"
 where
 "invokeVCPUInjectIRQ vcpuPtr index virq\<equiv> (do
     hsCurVCPU \<leftarrow> gets (armHSCurVCPU \<circ> ksArchState);
     (case hsCurVCPU of
           Some (vcpuPtr, _) \<Rightarrow>  
-            doMachineOp $ set_gic_vcpu_ctrl_lr index virq
+            doMachineOp $ set_gic_vcpu_ctrl_lr (fromIntegral index) virq
         | _ \<Rightarrow>   (do
              vcpu \<leftarrow> getObject vcpuPtr;
              vcpuLR \<leftarrow> return ( (vgicLR \<circ> vcpuVGIC $ vcpu)  aLU  [(index, virq)]);
              setObject vcpuPtr $ vcpu \<lparr> vcpuVGIC := (vcpuVGIC vcpu) \<lparr> vgicLR := vcpuLR \<rparr>\<rparr>
         od)
         );
-    ct \<leftarrow> getCurThread;
-    setThreadState Restart ct
+    return []
 od)"
 
 definition
-performARMVCPUInvocation :: "vcpuinvocation \<Rightarrow> unit kernel"
+performARMVCPUInvocation :: "vcpuinvocation \<Rightarrow> machine_word list kernel"
 where
 "performARMVCPUInvocation x0\<equiv> (case x0 of
     (VCPUSetTCB vcpuPtr tcbPtr) \<Rightarrow>   
@@ -249,11 +303,6 @@ where
     (case vcpuTCBPtr vcpu of
           Some tcbPtr \<Rightarrow>   dissociateVCPUTCB vcpuPtr tcbPtr
         | None \<Rightarrow>   return ()
-        );
-    hsCurVCPU \<leftarrow> gets (armHSCurVCPU \<circ> ksArchState);
-    (case hsCurVCPU of
-          Some (vcpuPtr, _) \<Rightarrow>   vcpuInvalidateActive
-        | _ \<Rightarrow>   return ()
         )
 od)"
 

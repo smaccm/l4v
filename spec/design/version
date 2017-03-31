@@ -1,11 +1,25 @@
-Built from git repo at /Users/miki/repo3/l4v/spec/haskell by miki
+Built from git repo at /home/mikit/myrepo/current/l4v/spec/haskell by mikit
 
 Generated from changeset:
-84dc702 InfoFlowC: updates for Hypervisor stub
+25a88ce arm-hyp haskell: Various fixes to the spec
 
 
 Warning - uncomitted changes used:
- M ../design/ARM/ArchHypervisor_H.thy
+ M ../design/API_H.thy
+ M ../design/ARM_HYP/ArchHypervisor_H.thy
+ M ../design/ARM_HYP/ArchRetypeDecls_H.thy
+ M ../design/ARM_HYP/ArchRetype_H.thy
+ M ../design/ARM_HYP/ArchStateData_H.thy
+ M ../design/ARM_HYP/ArchStructures_H.thy
+ M ../design/ARM_HYP/ArchTCB_H.thy
+ M ../design/ARM_HYP/ArchThread_H.thy
+ M ../design/ARM_HYP/ArchVSpace_H.thy
+ M ../design/ARM_HYP/VCPU_H.thy
+ M ../design/FaultMonad_H.thy
+ M ../design/Syscall_H.thy
  M ../design/version
- M src/SEL4/Kernel/Hypervisor/ARM.lhs
- M ../../tools/haskell-translator/caseconvs
+ M ../machine/ARM_HYP/MachineTypes.thy
+?? ../../proof/hs_err_pid4673.log
+?? ../cspec/c/
+?? ../design/ARM_HYP/ArchFaultHandler_H.thy
+?? ../design/ARM_HYP/ArchFault_H.thy
