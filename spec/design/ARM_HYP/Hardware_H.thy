@@ -303,6 +303,13 @@ where
 "pageColourBits \<equiv> Platform.ARM_HYP.pageColourBits"
 
 definition
+setCurrentPD :: "paddr \<Rightarrow> unit machine_monad"
+where
+"setCurrentPD pd\<equiv> (
+    setCurrentPDPL2 pd
+)"
+
+definition
 clearExMonitor :: "unit machine_monad"
 where
 "clearExMonitor\<equiv> return ()"

@@ -548,7 +548,7 @@ defs atcbContextGet_def:
 "atcbContextGet \<equiv> atcbContext"
 
 defs asidHighBits_def:
-"asidHighBits \<equiv> 6"
+"asidHighBits \<equiv> 7"
 
 defs asidLowBits_def:
 "asidLowBits \<equiv> 10"

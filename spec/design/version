@@ -1,25 +1,12 @@
-Built from git repo at /home/mikit/myrepo/current/l4v/spec/haskell by mikit
+Built from git repo at /home/agomezl/NICTA/verification/l4v/spec/haskell by agomezl
 
 Generated from changeset:
-25a88ce arm-hyp haskell: Various fixes to the spec
+634c6a8 arm-hyp haskell: update doFlush
 
 
 Warning - uncomitted changes used:
- M ../design/API_H.thy
- M ../design/ARM_HYP/ArchHypervisor_H.thy
- M ../design/ARM_HYP/ArchRetypeDecls_H.thy
- M ../design/ARM_HYP/ArchRetype_H.thy
- M ../design/ARM_HYP/ArchStateData_H.thy
- M ../design/ARM_HYP/ArchStructures_H.thy
- M ../design/ARM_HYP/ArchTCB_H.thy
- M ../design/ARM_HYP/ArchThread_H.thy
- M ../design/ARM_HYP/ArchVSpace_H.thy
- M ../design/ARM_HYP/VCPU_H.thy
- M ../design/FaultMonad_H.thy
- M ../design/Syscall_H.thy
- M ../design/version
- M ../machine/ARM_HYP/MachineTypes.thy
-?? ../../proof/hs_err_pid4673.log
-?? ../cspec/c/
-?? ../design/ARM_HYP/ArchFaultHandler_H.thy
-?? ../design/ARM_HYP/ArchFault_H.thy
+M  ../design/ARM_HYP/ArchStructures_H.thy
+M  ../design/ARM_HYP/ArchVSpace_H.thy
+M  ../design/ARM_HYP/Hardware_H.thy
+UU ../design/version
+?? ../../test-images/

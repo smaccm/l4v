@@ -263,7 +263,7 @@ defs lookupPTSlot_def:
             pt \<leftarrow> returnOk ( ptrFromPAddr $ pdeTable pde);
             withoutFailure $ lookupPTSlotFromPT pt vptr
           odE)
-        | _ \<Rightarrow>   throw $ MissingCapability 20
+        | _ \<Rightarrow>   throw $ MissingCapability 21
         )
 odE)"
 
@@ -617,21 +617,23 @@ defs getHWASID_def:
 od)"
 
 defs doFlush_def:
-"doFlush x0 vstart vend pstart\<equiv> (case x0 of
-    Clean \<Rightarrow>   
-    cleanCacheRange_RAM vstart vend pstart
-  | Invalidate \<Rightarrow>   
-    invalidateCacheRange_RAM vstart vend pstart
-  | CleanInvalidate \<Rightarrow>   
-    cleanInvalidateCacheRange_RAM vstart vend pstart
-  | Unify \<Rightarrow>    (do
-    cleanCacheRange_PoU vstart vend pstart;
-    dsb;
-    invalidateCacheRange_I vstart vend pstart;
-    branchFlushRange vstart vend pstart;
-    isb
-  od)
-  )"
+"doFlush flushType vstart vend pstart \<equiv>
+    let
+     vstart' = VPtr $ fromPPtr $ ptrFromPAddr pstart;
+          vend' = vstart' + (vend - vstart)
+    in
+    (case flushType of
+          Clean \<Rightarrow>   cleanCacheRange_RAM vstart' vend' pstart
+        | Invalidate \<Rightarrow>   invalidateCacheRange_RAM vstart' vend' pstart
+        | CleanInvalidate \<Rightarrow>   cleanInvalidateCacheRange_RAM vstart' vend' pstart
+        | Unify \<Rightarrow>   (do
+                     cleanCacheRange_PoU vstart' vend' pstart;
+                     dsb;
+                     invalidateCacheRange_I vstart' vend' pstart;
+                     branchFlushRange vstart' vend' pstart;
+                     isb
+        od)
+        )"
 
 defs flushPage_def:
 "flushPage arg1 pd asid vptr \<equiv> (do
