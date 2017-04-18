@@ -48,8 +48,8 @@ where
           Some (curVCPU, _) \<Rightarrow>   when (curVCPU = vcpuPtr) vcpuInvalidateActive
         | _ \<Rightarrow>   return ()
         );
-    setObject vcpuPtr $ vcpu \<lparr> vcpuTCBPtr := Nothing \<rparr>;
     archThreadSet (\<lambda> atcb. atcb \<lparr> atcbVCPUPtr := Nothing \<rparr>) tcbPtr;
+    setObject vcpuPtr $ vcpu \<lparr> vcpuTCBPtr := Nothing \<rparr>;
     tcb \<leftarrow> getObject tcbPtr;
     asUser tcbPtr $ ((do
         cpsr \<leftarrow> getRegister (Register CPSR);
