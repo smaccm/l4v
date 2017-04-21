@@ -1,15 +1,10 @@
-Built from git repo at /home/agomezl/NICTA/verification/l4v/spec/haskell by agomezl
+Built from git repo at /home/mikit/temprepo/l4v/spec/haskell by mikit
 
 Generated from changeset:
-2d224ca Finalise_C progress (squash)
+e088c3f arm-hyp design: run translator
 
 
 Warning - uncomitted changes used:
- M ../abstract/ARM_HYP/ArchVSpace_A.thy
  M ../design/version
  M src/SEL4/Object/VCPU/ARM_HYP.lhs
-?? ../../proof/crefine/ARM_HYP/.Finalise_C.thy.marks
-?? ../../proof/crefine/ARM_HYP/Finalise_C.thy.bkp
-?? ../../proof/crefine/ARM_HYP/TcbAcc_C.thy.bkp
-?? ../../proof/refine/ARM_HYP/.VSpace_R.thy.marks
-?? ../../test-images/
+?? ../cspec/c/

@@ -105,7 +105,8 @@ where
            setObject vcpuPtr $ vcpu \<lparr>
                  vcpuVGIC := (vcpuVGIC vcpu) \<lparr> vgicHCR := hcr \<rparr>
                , vcpuRegs := regs'
-               \<rparr>
+               \<rparr>;
+           doMachineOp isb
           od)
         | None \<Rightarrow>   return ()
         );
