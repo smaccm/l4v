@@ -1,10 +1,8 @@
-Built from git repo at /home/mikit/temprepo/l4v/spec/haskell by mikit
+Built from git repo at /Users/kleing/ver-arm-hyp/l4v/spec/haskell by kleing
 
 Generated from changeset:
-e088c3f arm-hyp design: run translator
+8c91e9f arm-hyp design/skel: define pageBase manually
 
 
 Warning - uncomitted changes used:
  M ../design/version
- M src/SEL4/Object/VCPU/ARM_HYP.lhs
-?? ../cspec/c/

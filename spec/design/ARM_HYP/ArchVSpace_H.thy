@@ -23,6 +23,8 @@ imports
 begin
 context Arch begin global_naming ARM_HYP_H
 
+definition
+  "pageBase vaddr magnitude\<equiv> vaddr && (complement $ mask (pageBitsForSize magnitude))"
 
 defs globalsBase_def:
 "globalsBase \<equiv> VPtr 0xffffc000"
@@ -702,22 +704,19 @@ defs labelToFlushType_def:
       | _ \<Rightarrow>   error []
       )"
 
-defs pageBase_def:
-"pageBase vaddr magnitude\<equiv> vaddr && (complement $ mask (pageBitsForSize magnitude))"
-
 defs resolveVAddr_def:
 "resolveVAddr pd vaddr\<equiv> (do
     pdSlot \<leftarrow> return ( lookupPDSlot pd vaddr);
     pde \<leftarrow> getObject pdSlot;
     (case pde of
           SectionPDE frame v45 v46 v47 \<Rightarrow>   return $ Just (ARMSection, frame)
-        | SuperSectionPDE frame v48 v49 v50 \<Rightarrow>   return $ Just (ARMSuperSection, frame)
+        | SuperSectionPDE frame v48 v49 v50 \<Rightarrow>   return $ Just (ARMSuperSection, pageBase frame ARMSuperSection)
         | PageTablePDE table \<Rightarrow>   (do
             pt \<leftarrow> return ( ptrFromPAddr table);
             pteSlot \<leftarrow> lookupPTSlotFromPT pt vaddr;
             pte \<leftarrow> getObject pteSlot;
             (case pte of
-                  LargePagePTE frame v39 v40 v41 \<Rightarrow>   return $ Just (ARMLargePage, frame)
+                  LargePagePTE frame v39 v40 v41 \<Rightarrow>   return $ Just (ARMLargePage, pageBase frame ARMLargePage)
                 | SmallPagePTE frame v42 v43 v44 \<Rightarrow>   return $ Just (ARMSmallPage, frame)
                 | _ \<Rightarrow>   return Nothing
                 )
@@ -1031,6 +1030,19 @@ defs pdeCheckIfMapped_def:
     return $ pd \<noteq> InvalidPDE
 od)"
 
+defs addPTEOffset_def:
+"addPTEOffset pte i \<equiv> if pte = InvalidPTE then InvalidPTE
+                     else pte \<lparr> pteFrame := addPAddr (pteFrame pte)
+                                 (i * bit (pageBitsForSize(ARMSmallPage))) \<rparr>"
+
+defs addPDEOffset_def:
+"addPDEOffset x0 i\<equiv> (case x0 of
+    InvalidPDE \<Rightarrow>    InvalidPDE
+  | (PageTablePDE p) \<Rightarrow>    PageTablePDE p
+  | pde \<Rightarrow>    pde \<lparr> pdeFrame := addPAddr (pdeFrame pde)
+                                (i * bit (pageBitsForSize(ARMSection))) \<rparr>
+  )"
+
 defs performPageInvocation_def:
 "performPageInvocation x0\<equiv> (case x0 of
     (PageMap asid cap ctSlot entries) \<Rightarrow>    (do
@@ -1038,7 +1050,8 @@ defs performPageInvocation_def:
     (case entries of
           Inl (pte, slots) \<Rightarrow>   (do
             tlbFlush \<leftarrow> pteCheckIfMapped (head slots);
-            mapM (flip storePTE pte) slots;
+            mapM (\<lambda> (slot, i). storePTE slot (addPTEOffset pte i))
+                 (zip slots [0  .e.  fromIntegral (length slots - 1)]);
             doMachineOp $
                 cleanCacheRange_PoU (VPtr $ fromPPtr $ head slots)
                                     (VPtr $ (fromPPtr (last slots)) + (bit pteBits - 1))
@@ -1047,7 +1060,8 @@ defs performPageInvocation_def:
           od)
         | Inr (pde, slots) \<Rightarrow>   (do
             tlbFlush \<leftarrow> pdeCheckIfMapped (head slots);
-            mapM (flip storePDE pde) slots;
+            mapM (\<lambda> (slot, i). storePDE slot (addPDEOffset pde i))
+                 (zip slots [0  .e.  fromIntegral (length slots - 1)]);
             doMachineOp $
                 cleanCacheRange_PoU (VPtr $ fromPPtr $ head slots)
                                     (VPtr $ (fromPPtr (last slots)) + (bit pdeBits - 1))
@@ -1058,7 +1072,8 @@ defs performPageInvocation_def:
     od)
   | (PageRemap asid (Inl (pte, slots))) \<Rightarrow>    (do
     tlbFlush \<leftarrow> pteCheckIfMapped (head slots);
-    mapM (flip storePTE pte) slots;
+    mapM (\<lambda> (slot, i). storePTE slot (addPTEOffset pte i))
+         (zip slots [0  .e.  fromIntegral (length slots - 1)]);
     doMachineOp $
         cleanCacheRange_PoU (VPtr $ fromPPtr $ head slots)
                             (VPtr $ (fromPPtr (last slots)) + (bit pteBits - 1))
@@ -1067,7 +1082,8 @@ defs performPageInvocation_def:
   od)
   | (PageRemap asid (Inr (pde, slots))) \<Rightarrow>    (do
     tlbFlush \<leftarrow> pdeCheckIfMapped (head slots);
-    mapM (flip storePDE pde) slots;
+    mapM (\<lambda> (slot, i). storePDE slot (addPDEOffset pde i))
+         (zip slots [0  .e.  fromIntegral (length slots - 1)]);
     doMachineOp $
         cleanCacheRange_PoU (VPtr $ fromPPtr $ head slots)
                             (VPtr $ (fromPPtr (last slots)) + (bit pdeBits - 1))

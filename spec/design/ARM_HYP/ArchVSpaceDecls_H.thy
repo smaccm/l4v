@@ -216,9 +216,6 @@ consts'
 labelToFlushType :: "machine_word \<Rightarrow> flush_type"
 
 consts'
-pageBase :: "vptr \<Rightarrow> vmpage_size \<Rightarrow> vptr"
-
-consts'
 resolveVAddr :: "machine_word \<Rightarrow> vptr \<Rightarrow> ((vmpage_size * paddr) option) kernel"
 
 consts'
@@ -247,6 +244,12 @@ pteCheckIfMapped :: "machine_word \<Rightarrow> bool kernel"
 
 consts'
 pdeCheckIfMapped :: "machine_word \<Rightarrow> bool kernel"
+
+consts'
+addPTEOffset :: "pte \<Rightarrow> machine_word \<Rightarrow> pte"
+
+consts'
+addPDEOffset :: "pde \<Rightarrow> machine_word \<Rightarrow> pde"
 
 consts'
 performPageInvocation :: "page_invocation \<Rightarrow> unit kernel"

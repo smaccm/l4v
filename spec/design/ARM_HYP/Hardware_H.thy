@@ -298,6 +298,11 @@ where
 "fromPAddr \<equiv> Platform.ARM_HYP.fromPAddr"
 
 definition
+addPAddr :: "paddr \<Rightarrow> machine_word \<Rightarrow> paddr"
+where
+"addPAddr p w\<equiv> toPAddr (fromPAddr p + w)"
+
+definition
 pageColourBits :: "nat"
 where
 "pageColourBits \<equiv> Platform.ARM_HYP.pageColourBits"
