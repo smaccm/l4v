@@ -123,15 +123,15 @@ definition
 vcpuUpdate :: "machine_word \<Rightarrow> (vcpu \<Rightarrow> vcpu) \<Rightarrow> unit kernel"
 where
 "vcpuUpdate vcpuPtr f\<equiv> (do
-    vcpu \<leftarrow> getObject vcpuPtr;;
+    vcpu \<leftarrow> getObject vcpuPtr;
     setObject vcpuPtr (f vcpu)
 od)"
 
 definition
-vcpuSaveRegister :: "machine_word \<Rightarrow> vcpureg \<Rightarrow> machine_word M.machine_monad \<Rightarrow> unit kernel"
+vcpuSaveRegister :: "machine_word \<Rightarrow> vcpureg \<Rightarrow> machine_word machine_monad \<Rightarrow> unit kernel"
 where
 "vcpuSaveRegister vcpuPtr r mop\<equiv> (do
-    rval \<leftarrow> doMachineOp mop;;
+    rval \<leftarrow> doMachineOp mop;
     vcpuUpdate vcpuPtr (\<lambda> vcpu. vcpu \<lparr> vcpuRegs := (vcpuRegs vcpu)  aLU  [(r,rval)] \<rparr>)
 od)"
 
