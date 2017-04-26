@@ -125,61 +125,39 @@ where
 "vcpuSave x0\<equiv> (case x0 of
     (Some (vcpuPtr, active)) \<Rightarrow>    (do
     doMachineOp dsb;
-    vcpu \<leftarrow> getObject vcpuPtr;
-    (hcr, sctlr) \<leftarrow> if active
-                        then (do
-                            sctlr \<leftarrow> doMachineOp getSCTLR;
-                            hcr \<leftarrow> doMachineOp get_gic_vcpu_ctrl_hcr;
-                            return (sctlr, hcr)
-                        od)
-                        else return (vcpuSCTLR vcpu, vgicHCR \<circ> vcpuVGIC $ vcpu);
+    when active $ (do
+          vcpuSaveRegister vcpuPtr VCPURegSCTLR getSCTLR;
+          hcr \<leftarrow> doMachineOp get_gic_vcpu_ctrl_hcr;
+          vgicUpdate vcpuPtr (\<lambda> vgic. vgic \<lparr> vgicHCR := hcr \<rparr>)
+    od);
     actlr \<leftarrow> doMachineOp getACTLR;
+    vcpuUpdate vcpuPtr (\<lambda> vcpu. vcpu \<lparr> vcpuACTLR := actlr \<rparr>);
     vmcr \<leftarrow> doMachineOp get_gic_vcpu_ctrl_vmcr;
+    vgicUpdate vcpuPtr (\<lambda> vgic. vgic \<lparr> vgicVMCR := vmcr \<rparr>);
     apr \<leftarrow> doMachineOp get_gic_vcpu_ctrl_apr;
+    vgicUpdate vcpuPtr (\<lambda> vgic. vgic \<lparr> vgicAPR := vmcr \<rparr>);
     numListRegs \<leftarrow> gets (armKSGICVCPUNumListRegs \<circ> ksArchState);
     gicIndices \<leftarrow> return ( init [0 .e. numListRegs]);
-    lrVals \<leftarrow> doMachineOp $ mapM (get_gic_vcpu_ctrl_lr \<circ> fromIntegral) gicIndices;
-    vcpuLR \<leftarrow> return ( (vgicLR \<circ> vcpuVGIC $ vcpu)  aLU  zip gicIndices lrVals);
-    lr_svc \<leftarrow> doMachineOp get_lr_svc;
-    sp_svc \<leftarrow> doMachineOp get_sp_svc;
-    lr_abt \<leftarrow> doMachineOp get_lr_abt;
-    sp_abt \<leftarrow> doMachineOp get_sp_abt;
-    lr_und \<leftarrow> doMachineOp get_lr_und;
-    sp_und \<leftarrow> doMachineOp get_sp_und;
-    lr_irq \<leftarrow> doMachineOp get_lr_irq;
-    sp_irq \<leftarrow> doMachineOp get_sp_irq;
-    lr_fiq \<leftarrow> doMachineOp get_lr_fiq;
-    sp_fiq \<leftarrow> doMachineOp get_sp_fiq;
-    r8_fiq \<leftarrow> doMachineOp get_r8_fiq;
-    r9_fiq \<leftarrow> doMachineOp get_r9_fiq;
-    r10_fiq \<leftarrow> doMachineOp get_r10_fiq;
-    r11_fiq \<leftarrow> doMachineOp get_r11_fiq;
-    r12_fiq \<leftarrow> doMachineOp get_r12_fiq;
-    regs' \<leftarrow> return ( (vcpuRegs vcpu)  aLU  [(VCPURegSCTLR, sctlr)
-                                   ,(VCPURegLRsvc, lr_svc)
-                                   ,(VCPURegSPsvc, sp_svc)
-                                   ,(VCPURegLRabt, lr_abt)
-                                   ,(VCPURegSPabt, sp_abt)
-                                   ,(VCPURegLRund, lr_und)
-                                   ,(VCPURegSPund, sp_und)
-                                   ,(VCPURegLRirq, lr_irq)
-                                   ,(VCPURegSPirq, sp_irq)
-                                   ,(VCPURegLRfiq, lr_fiq)
-                                   ,(VCPURegSPfiq, sp_fiq)
-                                   ,(VCPURegR8fiq, r8_fiq)
-                                   ,(VCPURegR9fiq, r9_fiq)
-                                   ,(VCPURegR10fiq, r10_fiq)
-                                   ,(VCPURegR11fiq, r11_fiq)
-                                   ,(VCPURegR12fiq, r12_fiq)
-                                   ]);
-    setObject vcpuPtr $ vcpu \<lparr>
-          vcpuACTLR := actlr
-        , vcpuVGIC := (vcpuVGIC vcpu) \<lparr> vgicHCR := hcr
-                                     , vgicVMCR := vmcr
-                                     , vgicAPR := apr
-                                     , vgicLR := vcpuLR \<rparr>
-        , vcpuRegs := regs'
-        \<rparr>;
+    mapM_x (\<lambda> vreg. (do
+          val \<leftarrow> doMachineOp $ get_gic_vcpu_ctrl_lr (fromIntegral vreg);
+          vgicUpdate vcpuPtr (\<lambda> vgic. vgic \<lparr> vgicLR := (vgicLR vgic)  aLU  [(fromIntegral vreg, val)] \<rparr>) 
+    od)
+                                                                                                      ) gicIndices;
+    vcpuSaveRegister vcpuPtr VCPURegLRsvc get_lr_svc;
+    vcpuSaveRegister vcpuPtr VCPURegSPsvc get_sp_svc;
+    vcpuSaveRegister vcpuPtr VCPURegLRabt get_lr_abt;
+    vcpuSaveRegister vcpuPtr VCPURegSPabt get_sp_abt;
+    vcpuSaveRegister vcpuPtr VCPURegLRund get_lr_und;
+    vcpuSaveRegister vcpuPtr VCPURegSPund get_sp_und;
+    vcpuSaveRegister vcpuPtr VCPURegLRirq get_lr_irq;
+    vcpuSaveRegister vcpuPtr VCPURegSPirq get_sp_irq;
+    vcpuSaveRegister vcpuPtr VCPURegLRfiq get_lr_fiq;
+    vcpuSaveRegister vcpuPtr VCPURegSPfiq get_sp_fiq;
+    vcpuSaveRegister vcpuPtr VCPURegR8fiq get_r8_fiq;
+    vcpuSaveRegister vcpuPtr VCPURegR9fiq get_r9_fiq;
+    vcpuSaveRegister vcpuPtr VCPURegR10fiq get_r10_fiq;
+    vcpuSaveRegister vcpuPtr VCPURegR11fiq get_r11_fiq;
+    vcpuSaveRegister vcpuPtr VCPURegR12fiq get_r12_fiq;
     doMachineOp isb
     od)
   | _ \<Rightarrow>    haskell_fail []
