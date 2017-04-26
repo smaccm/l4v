@@ -120,6 +120,27 @@ where
 od)"
 
 definition
+vcpuUpdate :: "machine_word \<Rightarrow> (vcpu \<Rightarrow> vcpu) \<Rightarrow> unit kernel"
+where
+"vcpuUpdate vcpuPtr f\<equiv> (do
+    vcpu \<leftarrow> getObject vcpuPtr;;
+    setObject vcpuPtr (f vcpu)
+od)"
+
+definition
+vcpuSaveRegister :: "machine_word \<Rightarrow> vcpureg \<Rightarrow> machine_word M.machine_monad \<Rightarrow> unit kernel"
+where
+"vcpuSaveRegister vcpuPtr r mop\<equiv> (do
+    rval \<leftarrow> doMachineOp mop;;
+    vcpuUpdate vcpuPtr (\<lambda> vcpu. vcpu \<lparr> vcpuRegs := (vcpuRegs vcpu)  aLU  [(r,rval)] \<rparr>)
+od)"
+
+definition
+vgicUpdate :: "machine_word \<Rightarrow> (gicvcpuinterface \<Rightarrow> gicvcpuinterface) \<Rightarrow> unit kernel"
+where
+"vgicUpdate vcpuPtr f\<equiv> vcpuUpdate vcpuPtr (\<lambda> vcpu. vcpu \<lparr> vcpuVGIC := f (vcpuVGIC vcpu) \<rparr>)"
+
+definition
 vcpuSave :: "(machine_word * bool) option \<Rightarrow> unit kernel"
 where
 "vcpuSave x0\<equiv> (case x0 of
