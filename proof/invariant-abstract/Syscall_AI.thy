@@ -179,6 +179,50 @@ locale Systemcall_AI_Pre =
        \<lbrace> valid_objs :: 'state_ext state \<Rightarrow> _\<rbrace>
          handle_arch_fault_reply x4 t d dl
        \<lbrace>\<lambda>_ .valid_objs\<rbrace>"
+  assumes arch_tcb_sanitise_condition_pred_tcb_at[wp]:
+    "\<And> P t g.
+      \<lbrace> pred_tcb_at proj P t :: 'state_ext state \<Rightarrow> _\<rbrace>
+        arch_tcb_sanitise_condition g
+      \<lbrace> \<lambda>_ . pred_tcb_at proj P t \<rbrace>"
+  assumes arch_tcb_sanitise_condition_invs[wp]:
+    "\<And> f.
+      \<lbrace> invs :: 'state_ext state \<Rightarrow> _ \<rbrace> arch_tcb_sanitise_condition f  \<lbrace> \<lambda>_ . invs \<rbrace>"
+  assumes arch_tcb_sanitise_condition_cap_to[wp]:
+    "\<And> f c.
+      \<lbrace> ex_nonz_cap_to c :: 'state_ext state \<Rightarrow> _ \<rbrace>
+        arch_tcb_sanitise_condition f
+      \<lbrace> \<lambda>_ . ex_nonz_cap_to c \<rbrace>"
+  assumes arch_tcb_sanitise_condition_it[wp]:
+    "\<And> P f .
+      \<lbrace> \<lambda>s :: 'state_ext state. P (idle_thread s) \<rbrace>
+        arch_tcb_sanitise_condition f 
+      \<lbrace> \<lambda>_ s. P (idle_thread s) \<rbrace>"
+  assumes arch_tcb_sanitise_condition_caps[wp]:
+    "\<And> P f .
+      \<lbrace> \<lambda>s  :: 'state_ext state . P (caps_of_state s) \<rbrace>
+        arch_tcb_sanitise_condition f 
+      \<lbrace> \<lambda>_ s. P (caps_of_state s) \<rbrace>"
+  assumes arch_tcb_sanitise_condition_cte_wp_at[wp]:
+     "\<And> P P' p x4.
+       \<lbrace>\<lambda>s ::'state_ext state . P (cte_wp_at P' p s)\<rbrace>
+         arch_tcb_sanitise_condition x4
+       \<lbrace>\<lambda>_ s. P (cte_wp_at P' p s)\<rbrace>"
+  assumes arch_tcb_sanitise_condition_cur_thread[wp]:
+    "\<And> P  x4.
+       \<lbrace>\<lambda>s ::'state_ext state . P (cur_thread s)\<rbrace>
+         arch_tcb_sanitise_condition x4
+       \<lbrace>\<lambda>_ s. P (cur_thread s)\<rbrace>"
+  assumes arch_tcb_sanitise_condition_st_tcb_at_simple[wp]:
+    "\<And> x4 t'.
+       \<lbrace>st_tcb_at simple t' :: 'state_ext state \<Rightarrow> _\<rbrace>
+         arch_tcb_sanitise_condition x4
+       \<lbrace>\<lambda>_ .st_tcb_at simple t'\<rbrace>"
+  assumes arch_tcb_sanitise_condition_valid_objs[wp]:
+    "\<And> x4.
+       \<lbrace> valid_objs :: 'state_ext state \<Rightarrow> _\<rbrace>
+         arch_tcb_sanitise_condition x4
+       \<lbrace>\<lambda>_ .valid_objs\<rbrace>"
+
 begin
 
 crunch pred_tcb_at[wp]: handle_fault_reply "pred_tcb_at proj (P :: 'a \<Rightarrow> _) t :: 'state_ext state \<Rightarrow> _"
@@ -276,11 +320,7 @@ lemma (in Systemcall_AI_Pre) handle_fault_reply_cte_wp_at:
        apply (clarsimp simp add: as_user_def)
        apply (wp set_object_cte_wp_at2 thread_get_wp' | simp add: split_def)+
        apply (clarsimp simp add: NC)
-      apply (clarsimp simp add: as_user_def)
-      apply (wp set_object_cte_wp_at2 thread_get_wp' | simp add: split_def)+
-      apply (clarsimp simp add: NC)
-      apply simp
-      apply wp
+      apply (wp set_object_cte_wp_at2 thread_get_wp' | simp add: split_def | wp_once hoare_drop_imps)+
       done
   qed
 

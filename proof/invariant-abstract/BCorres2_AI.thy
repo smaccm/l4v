@@ -20,6 +20,9 @@ locale BCorres2_AI =
     "\<And>a b c d.
       bcorres (handle_arch_fault_reply a b c d :: 'a state \<Rightarrow> _)
               (handle_arch_fault_reply a b c d)"
+  assumes arch_tcb_sanitise_condition_bcorres[wp]:
+    "\<And>t. bcorres (arch_tcb_sanitise_condition t :: 'a state \<Rightarrow> _)
+                  (arch_tcb_sanitise_condition t)"
   assumes make_arch_fault_msg_bcorres[wp]:
     "\<And> a b.
       bcorres (make_arch_fault_msg a b :: 'a state \<Rightarrow> _)

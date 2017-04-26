@@ -754,6 +754,18 @@ locale DetSchedSchedule_AI =
     "\<And>P ft t. make_arch_fault_msg ft t \<lbrace>\<lambda>s. P (ready_queues s)\<rbrace>"
   assumes make_fault_arch_msg_valid_etcbs[wp] :
     "\<And>ft t. make_arch_fault_msg ft t \<lbrace>valid_etcbs\<rbrace>"
+  assumes arch_tcb_sanitise_condition_not_cur_thread[wp] :
+    "\<And>ft t'. arch_tcb_sanitise_condition ft \<lbrace>not_cur_thread t'\<rbrace>"
+  assumes arch_tcb_sanitise_condition_valid_sched[wp] :
+    "\<And>ft. arch_tcb_sanitise_condition ft \<lbrace>valid_sched\<rbrace>"
+  assumes arch_tcb_sanitise_condition_scheduler_action[wp] :
+    "\<And>P ft. arch_tcb_sanitise_condition ft \<lbrace>\<lambda>s. P (scheduler_action s)\<rbrace>"
+  assumes arch_tcb_sanitise_condition_ready_queues[wp] :
+    "\<And>P ft. arch_tcb_sanitise_condition ft \<lbrace>\<lambda>s. P (ready_queues s)\<rbrace>"
+  assumes arch_tcb_sanitise_condition_valid_etcbs[wp] :
+    "\<And>ft. arch_tcb_sanitise_condition ft \<lbrace>valid_etcbs\<rbrace>"
+  assumes arch_tcb_sanitise_condition_cur'[wp]:
+    "\<And>f. \<lbrace>cur_tcb :: det_ext state \<Rightarrow> bool\<rbrace> arch_tcb_sanitise_condition f \<lbrace>\<lambda>_. cur_tcb\<rbrace>"
 
 
 context DetSchedSchedule_AI begin
