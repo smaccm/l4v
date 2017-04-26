@@ -63,16 +63,16 @@ where
           if (flags && vgic_misr_eoi \<noteq> 0)
           then
               if (eisr0 = 0 \<and> eisr1 = 0)
-                  then return $ VGICMaintenance [0, 0]
+                  then return $ VGICMaintenance Nothing
                   else ((do
                       irq_idx \<leftarrow> return ( irqIndex eisr0 eisr1);
                       gic_vcpu_num_list_regs \<leftarrow>
                           gets (armKSGICVCPUNumListRegs \<circ> ksArchState);
                       when (irq_idx < gic_vcpu_num_list_regs) (badIndex irq_idx);
-                      return $ VGICMaintenance [fromIntegral irq_idx, 1]
+                      return $ VGICMaintenance $ Just $ fromIntegral irq_idx
                   od)
                       )
-          else return $ VGICMaintenance [0, 0];
+          else return $ VGICMaintenance Nothing;
       ct \<leftarrow> getCurThread;
       handleFault ct $ ArchFault fault
     od)
@@ -193,10 +193,11 @@ where
     doMachineOp $ isb;
     vcpu \<leftarrow> getObject vcpuPtr;
     vgic \<leftarrow> return ( vcpuVGIC vcpu);
+    numListRegs \<leftarrow> gets (armKSGICVCPUNumListRegs \<circ> ksArchState);
     doMachineOp $ (do
         set_gic_vcpu_ctrl_vmcr (vgicVMCR vgic);
         set_gic_vcpu_ctrl_apr (vgicAPR vgic);
-        mapM_x (uncurry set_gic_vcpu_ctrl_lr) (map (\<lambda> i. (fromIntegral i, (vgicLR vgic) i)) [0 .e. gicVCPUMaxNumLR- 1]);
+        mapM_x (uncurry set_gic_vcpu_ctrl_lr) (map (\<lambda> i. (fromIntegral i, (vgicLR vgic) i)) [0 .e. numListRegs]);
         set_lr_svc (vcpuRegs vcpu VCPURegLRsvc);
         set_sp_svc (vcpuRegs vcpu VCPURegSPsvc);
         set_lr_abt (vcpuRegs vcpu VCPURegLRabt);

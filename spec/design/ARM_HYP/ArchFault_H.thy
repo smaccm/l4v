@@ -25,7 +25,7 @@ context Arch begin global_naming ARM_HYP_H
 datatype arch_fault =
     VMFault vptr "machine_word list"
   | VCPUFault machine_word
-  | VGICMaintenance "machine_word list"
+  | VGICMaintenance "machine_word option"
 
 primrec
   vcpuHSR :: "arch_fault \<Rightarrow> machine_word"
@@ -38,7 +38,7 @@ where
   "vmFaultAddress (VMFault v0 v1) = v0"
 
 primrec
-  vgicMaintenanceData :: "arch_fault \<Rightarrow> machine_word list"
+  vgicMaintenanceData :: "arch_fault \<Rightarrow> machine_word option"
 where
   "vgicMaintenanceData (VGICMaintenance v0) = v0"
 
@@ -58,7 +58,7 @@ where
   "vmFaultAddress_update f (VMFault v0 v1) = VMFault (f v0) v1"
 
 primrec
-  vgicMaintenanceData_update :: "((machine_word list) \<Rightarrow> (machine_word list)) \<Rightarrow> arch_fault \<Rightarrow> arch_fault"
+  vgicMaintenanceData_update :: "((machine_word option) \<Rightarrow> (machine_word option)) \<Rightarrow> arch_fault \<Rightarrow> arch_fault"
 where
   "vgicMaintenanceData_update f (VGICMaintenance v0) = VGICMaintenance (f v0)"
 
@@ -78,7 +78,7 @@ where
   "VCPUFault_ \<lparr> vcpuHSR= v0 \<rparr> == VCPUFault v0"
 
 abbreviation (input)
-  VGICMaintenance_trans :: "(machine_word list) \<Rightarrow> arch_fault" ("VGICMaintenance'_ \<lparr> vgicMaintenanceData= _ \<rparr>")
+  VGICMaintenance_trans :: "(machine_word option) \<Rightarrow> arch_fault" ("VGICMaintenance'_ \<lparr> vgicMaintenanceData= _ \<rparr>")
 where
   "VGICMaintenance_ \<lparr> vgicMaintenanceData= v0 \<rparr> == VGICMaintenance v0"
 

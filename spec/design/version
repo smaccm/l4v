@@ -1,8 +1,15 @@
-Built from git repo at /Users/kleing/ver-arm-hyp/l4v/spec/haskell by kleing
+Built from git repo at /home/mikit/myrepo/current/l4v/spec/haskell by mikit
 
 Generated from changeset:
-8c91e9f arm-hyp design/skel: define pageBase manually
+55ceaf2 wip fixing refine
 
 
 Warning - uncomitted changes used:
+ M ../design/ARM_HYP/ArchFaultHandler_H.thy
+ M ../design/ARM_HYP/ArchFault_H.thy
+ M ../design/ARM_HYP/ArchHypervisor_H.thy
+ M ../design/ARM_HYP/VCPU_H.thy
  M ../design/version
+?? ../../memo
+?? ../../proof/hs_err_pid4673.log
+?? ../cspec/c/

@@ -36,9 +36,13 @@ defs makeArchFaultMessage_def:
     return (5, fromVPtr faddr#fromVPtr vptr#archData)
     od)
   | (VCPUFault hsr) \<Rightarrow>    return (7, [hsr])
-  | (VGICMaintenance archData) \<Rightarrow>    (
-    return (6, archData)
-  )
+  | (VGICMaintenance archData) \<Rightarrow>    (do
+    msg \<leftarrow> return ( ((case archData of
+                     None \<Rightarrow>   [- 1]
+                   | Some idx \<Rightarrow>   [idx])
+                   ));
+    return (6, msg)
+  od)
   )"
 
 defs handleArchFaultReply_def:
