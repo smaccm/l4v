@@ -250,15 +250,14 @@ invokeVCPUInjectIRQ :: "machine_word \<Rightarrow> nat \<Rightarrow> virq \<Righ
 where
 "invokeVCPUInjectIRQ vcpuPtr index virq\<equiv> (do
     hsCurVCPU \<leftarrow> gets (armHSCurVCPU \<circ> ksArchState);
-    (case hsCurVCPU of
-          Some (vcpuPtr, _) \<Rightarrow>  
-            doMachineOp $ set_gic_vcpu_ctrl_lr (fromIntegral index) virq
-        | _ \<Rightarrow>   (do
-             vcpu \<leftarrow> getObject vcpuPtr;
-             vcpuLR \<leftarrow> return ( (vgicLR \<circ> vcpuVGIC $ vcpu)  aLU  [(index, virq)]);
-             setObject vcpuPtr $ vcpu \<lparr> vcpuVGIC := (vcpuVGIC vcpu) \<lparr> vgicLR := vcpuLR \<rparr>\<rparr>
-        od)
-        );
+    if (isJust hsCurVCPU \<and> fst (fromJust hsCurVCPU) = vcpuPtr)
+      then
+         doMachineOp $ set_gic_vcpu_ctrl_lr (fromIntegral index) virq
+      else (do
+          vcpu \<leftarrow> getObject vcpuPtr;
+          vcpuLR \<leftarrow> return ( (vgicLR \<circ> vcpuVGIC $ vcpu)  aLU  [(index, virq)]);
+          setObject vcpuPtr $ vcpu \<lparr> vcpuVGIC := (vcpuVGIC vcpu) \<lparr> vgicLR := vcpuLR \<rparr>\<rparr>
+      od);
     return []
 od)"
 

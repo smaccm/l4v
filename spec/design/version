@@ -1,15 +1,13 @@
 Built from git repo at /home/mikit/myrepo/current/l4v/spec/haskell by mikit
 
 Generated from changeset:
-55ceaf2 wip fixing refine
+cf968a3 arm-hyp refine: fix fallouts from the spec changes (excluding those in vcpu_save), with 1 sorry in Arch_R
 
 
 Warning - uncomitted changes used:
- M ../design/ARM_HYP/ArchFaultHandler_H.thy
- M ../design/ARM_HYP/ArchFault_H.thy
- M ../design/ARM_HYP/ArchHypervisor_H.thy
  M ../design/ARM_HYP/VCPU_H.thy
  M ../design/version
+ M src/SEL4/Object/VCPU/ARM_HYP.lhs
 ?? ../../memo
 ?? ../../proof/hs_err_pid4673.log
 ?? ../cspec/c/
