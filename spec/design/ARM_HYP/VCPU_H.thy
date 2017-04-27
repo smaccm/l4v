@@ -209,7 +209,7 @@ where
           irqPending = bit 28;
           eoiirqen = bit 19
     in
-    (grp `~shiftL~` groupShift) || (prio `~shiftL~` prioShift) || irq ||
+    ((grp && 1) `~shiftL~` groupShift) || ((prio && 0x1F) `~shiftL~` prioShift) || (irq && 0x3FF) ||
         irqPending || eoiirqen"
 
 definition
