@@ -26,20 +26,28 @@ where
 "performTransfer arg1 arg2 arg3 \<equiv> return ()"
 
 definition
-sanitiseRegister :: "tcb \<Rightarrow> register \<Rightarrow> machine_word \<Rightarrow> machine_word"
+sanitiseRegister :: "bool \<Rightarrow> register \<Rightarrow> machine_word \<Rightarrow> machine_word"
 where
-"sanitiseRegister tcb x1 v\<equiv> (case x1 of
+"sanitiseRegister b x1 v\<equiv> (case x1 of
     CPSR \<Rightarrow>  
   let
    v' = (v && 0xf8000000) || 0x150;
         modes = [0x10, 0x11, 0x12, 0x13, 0x17, 0x1b, 0x1f]
   in
   
-  if (atcbVCPUPtr (tcbArch tcb) \<noteq> Nothing \<and> ((v && 0x1f) `~elem~` modes))
+  if (b \<and> ((v && 0x1f) `~elem~` modes))
       then v
       else v'
   | _ \<Rightarrow>    v
   )"
+
+definition
+archTCBSanitise :: "machine_word \<Rightarrow> bool kernel"
+where
+"archTCBSanitise t\<equiv> (do
+   v \<leftarrow> liftM (atcbVCPUPtr \<circ> tcbArch) $ getObject t;
+   return $ isJust v
+od)"
 
 
 definition

@@ -50,10 +50,9 @@ where
         );
     archThreadSet (\<lambda> atcb. atcb \<lparr> atcbVCPUPtr := Nothing \<rparr>) tcbPtr;
     setObject vcpuPtr $ vcpu \<lparr> vcpuTCBPtr := Nothing \<rparr>;
-    tcb \<leftarrow> getObject tcbPtr;
     asUser tcbPtr $ ((do
         cpsr \<leftarrow> getRegister (Register CPSR);
-        setRegister (Register CPSR) $ sanitiseRegister tcb (Register CPSR) cpsr
+        setRegister (Register CPSR) $ sanitiseRegister False (Register CPSR) cpsr
     od)
         )
 od)"
