@@ -156,7 +156,7 @@ where
     vmcr \<leftarrow> doMachineOp get_gic_vcpu_ctrl_vmcr;
     vgicUpdate vcpuPtr (\<lambda> vgic. vgic \<lparr> vgicVMCR := vmcr \<rparr>);
     apr \<leftarrow> doMachineOp get_gic_vcpu_ctrl_apr;
-    vgicUpdate vcpuPtr (\<lambda> vgic. vgic \<lparr> vgicAPR := vmcr \<rparr>);
+    vgicUpdate vcpuPtr (\<lambda> vgic. vgic \<lparr> vgicAPR := apr \<rparr>);
     numListRegs \<leftarrow> gets (armKSGICVCPUNumListRegs \<circ> ksArchState);
     gicIndices \<leftarrow> return ( init [0 .e. numListRegs]);
     mapM_x (\<lambda> vreg. (do
