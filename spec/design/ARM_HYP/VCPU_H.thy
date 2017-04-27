@@ -234,7 +234,8 @@ where
     rangeCheck grp (0::nat) 1;
     gic_vcpu_num_list_regs \<leftarrow> withoutFailure $
         gets (armKSGICVCPUNumListRegs \<circ> ksArchState);
-    rangeCheck index 0 (gic_vcpu_num_list_regs - 1);
+    whenE (index \<ge> fromIntegral gic_vcpu_num_list_regs) $
+       (throw $ RangeError 0 (fromIntegral gic_vcpu_num_list_regs - 1));
     vcpuLR \<leftarrow> withoutFailure $ liftM (vgicLR \<circ> vcpuVGIC) $ getObject vcpuPtr;
     whenE (vcpuLR (fromIntegral index) && vgicIRQMask = vgicIRQActive) $
         throw DeleteFirst;

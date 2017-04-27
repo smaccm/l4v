@@ -1,28 +1,10 @@
-Built from git repo at /home/mikit/myrepo/current/l4v/spec/haskell by mikit
+Built from git repo at /home/mikit/temprepo/l4v/spec/haskell by mikit
 
 Generated from changeset:
-cf968a3 arm-hyp refine: fix fallouts from the spec changes (excluding those in vcpu_save), with 1 sorry in Arch_R
+626b15e arm-hyp crefine: fix some sorries in Ipc_C, fixed proofs broken by sanitiseRegister change
 
 
 Warning - uncomitted changes used:
- M ../design/ARM_HYP/VCPU_H.thy
- M ../../proof/crefine/ARM_HYP/Ipc_C.thy
- M ../../proof/crefine/ARM_HYP/TcbAcc_C.thy
- M ../../proof/crefine/ARM_HYP/Tcb_C.thy
- M ../../proof/refine/ARM_HYP/DomainTime_R.thy
- M ../../proof/refine/ARM_HYP/IpcCancel_R.thy
- M ../../proof/refine/ARM_HYP/Ipc_R.thy
- M ../../proof/refine/ARM_HYP/PageTableDuplicates.thy
- M ../../proof/refine/ARM_HYP/Syscall_R.thy
- M ../../proof/refine/ARM_HYP/Tcb_R.thy
- M ../design/ARM_HYP/ArchTCB_H.thy
- M ../design/ARM_HYP/VCPU_H.thy
- M ../design/FaultHandler_H.thy
- M ../design/TCBDecls_H.thy
- M ../design/TCB_H.thy
- M ../design/skel/TCB_H.thy
  M ../design/version
  M src/SEL4/Object/VCPU/ARM_HYP.lhs
-?? ../../memo
-?? ../../proof/hs_err_pid4673.log
 ?? ../cspec/c/
