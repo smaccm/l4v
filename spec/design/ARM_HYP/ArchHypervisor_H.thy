@@ -193,10 +193,11 @@ where
     vcpu \<leftarrow> getObject vcpuPtr;
     vgic \<leftarrow> return ( vcpuVGIC vcpu);
     numListRegs \<leftarrow> gets (armKSGICVCPUNumListRegs \<circ> ksArchState);
+    gicIndices \<leftarrow> return ( init [0 .e. numListRegs]);
     doMachineOp $ (do
         set_gic_vcpu_ctrl_vmcr (vgicVMCR vgic);
         set_gic_vcpu_ctrl_apr (vgicAPR vgic);
-        mapM_x (uncurry set_gic_vcpu_ctrl_lr) (map (\<lambda> i. (fromIntegral i, (vgicLR vgic) i)) [0 .e. numListRegs]);
+        mapM_x (uncurry set_gic_vcpu_ctrl_lr) (map (\<lambda> i. (fromIntegral i, (vgicLR vgic) i)) gicIndices);
         set_lr_svc (vcpuRegs vcpu VCPURegLRsvc);
         set_sp_svc (vcpuRegs vcpu VCPURegSPsvc);
         set_lr_abt (vcpuRegs vcpu VCPURegLRabt);

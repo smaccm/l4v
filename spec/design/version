@@ -1,10 +1,11 @@
 Built from git repo at /home/mikit/temprepo/l4v/spec/haskell by mikit
 
 Generated from changeset:
-d5c0fd7 arm-hyp abstract: correct range_check fix for decode_vcpu_inject_irq
+eee6b91 arm-hyp refine: remove remaining sorries for vcpuSave spec change
 
 
 Warning - uncomitted changes used:
+ M ../abstract/ARM_HYP/ArchVSpace_A.thy
  M ../design/version
  M src/SEL4/Object/VCPU/ARM_HYP.lhs
 ?? ../cspec/c/
