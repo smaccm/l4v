@@ -35,7 +35,9 @@ definition
 virqSetEOIIRQEN :: "virq \<Rightarrow> machine_word \<Rightarrow> virq"
 where
 "virqSetEOIIRQEN virq v \<equiv>
-    (virq && complement 0x80000) || ((v `~shiftL~` 19) && 0x80000)"
+    if virq `~shiftR~` 28 && 3 = 4
+    then virq
+    else (virq && complement 0x80000) || ((v `~shiftL~` 19) && 0x80000)"
 
 definition
 vgicMaintenance :: "unit kernel"
