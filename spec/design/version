@@ -1,12 +1,8 @@
-Built from git repo at /home/agomezl/NICTA/verification/l4v/spec/haskell by agomezl
+Built from git repo at /Users/kleing/verification-2/l4v/spec/haskell by kleing
 
 Generated from changeset:
-ee11597 arm-hyp design: run translator
+7ba7e4f arm-hyp hsakell: check idx earlier in vgicMaintenance to avoid C overflow
 
 
 Warning - uncomitted changes used:
- M ../abstract/ARM_HYP/ArchInterrupt_A.thy
  M ../design/version
- M src/SEL4/Object/VCPU/ARM_HYP.lhs
-?? ../abstract/ARM_HYP/ArchInterrupt_A.thy.bkp
-?? ../../test-images/

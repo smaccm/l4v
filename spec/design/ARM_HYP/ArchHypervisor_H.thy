@@ -47,7 +47,7 @@ where
         irqIndex = (\<lambda>  eisr0 eisr1.
             if eisr0 \<noteq> 0 then countTrailingZeros eisr0
                           else (countTrailingZeros eisr1) + 32);
-        badIndex = (\<lambda>  irq_idx. doMachineOp $ ((do
+        setIndex = (\<lambda>  irq_idx. doMachineOp $ ((do
               virq \<leftarrow> get_gic_vcpu_ctrl_lr (fromIntegral irq_idx);
               set_gic_vcpu_ctrl_lr (fromIntegral irq_idx) $ virqSetEOIIRQEN virq 0
         od)
@@ -61,16 +61,16 @@ where
       eisr1 \<leftarrow> doMachineOp $ get_gic_vcpu_ctrl_eisr1;
       flags \<leftarrow> doMachineOp $ get_gic_vcpu_ctrl_misr;
       vgic_misr_eoi \<leftarrow> return ( 1);
+      irq_idx \<leftarrow> return ( irqIndex eisr0 eisr1);
+      gic_vcpu_num_list_regs \<leftarrow> gets (armKSGICVCPUNumListRegs \<circ> ksArchState);
       fault \<leftarrow>
           if (flags && vgic_misr_eoi \<noteq> 0)
           then
-              if (eisr0 = 0 \<and> eisr1 = 0)
+              if (eisr0 = 0 \<and> eisr1 = 0 \<or>
+                  irq_idx \<ge> gic_vcpu_num_list_regs)
                   then return $ VGICMaintenance Nothing
                   else ((do
-                      irq_idx \<leftarrow> return ( irqIndex eisr0 eisr1);
-                      gic_vcpu_num_list_regs \<leftarrow>
-                          gets (armKSGICVCPUNumListRegs \<circ> ksArchState);
-                      when (irq_idx < gic_vcpu_num_list_regs) (badIndex irq_idx);
+                      setIndex irq_idx;
                       return $ VGICMaintenance $ Just $ fromIntegral irq_idx
                   od)
                       )
