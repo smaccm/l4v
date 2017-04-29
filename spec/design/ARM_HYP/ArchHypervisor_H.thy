@@ -44,7 +44,7 @@ where
     let
         irqIndex = (\<lambda>  eisr0 eisr1.
             if eisr0 \<noteq> 0 then countTrailingZeros eisr0
-                          else countTrailingZeros eisr1);
+                          else (countTrailingZeros eisr1) + 32);
         badIndex = (\<lambda>  irq_idx. doMachineOp $ ((do
               virq \<leftarrow> get_gic_vcpu_ctrl_lr (fromIntegral irq_idx);
               set_gic_vcpu_ctrl_lr (fromIntegral irq_idx) $ virqSetEOIIRQEN virq 0
