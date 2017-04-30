@@ -35,7 +35,7 @@ definition
 virqSetEOIIRQEN :: "virq \<Rightarrow> machine_word \<Rightarrow> virq"
 where
 "virqSetEOIIRQEN virq v \<equiv>
-    if virq `~shiftR~` 28 && 3 = 4
+    if virq `~shiftR~` 28 && 3 = 3
     then virq
     else (virq && complement 0x80000) || ((v `~shiftL~` 19) && 0x80000)"
 
